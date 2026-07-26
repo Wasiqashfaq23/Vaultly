@@ -12,7 +12,7 @@
 
 ## About
 
-Vaultly is a full-stack password manager that lets users securely store, view, edit, and delete credentials for any service. Built with a focus on simplicity and security — passwords are protected behind authenticated sessions using JWT.
+Vaultly is a full-stack password manager that lets users securely store, view, edit, and delete credentials for any service. Built with a focus on simplicity and security — passwords are hashed and protected behind authenticated sessions using JWT.
 
 ---
 
