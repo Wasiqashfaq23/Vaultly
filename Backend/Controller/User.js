@@ -1,9 +1,9 @@
 const { setUser } = require("../Services/Auth")
 const bcrypt = require("bcrypt")
 const { User } = require("../Model/User")
-const { validateSignup } = require("../utils/validate")
+const { validateSignup, validatePassword } = require("../utils/validate")
 const { generateToken, hashToken, defaultExpiry } = require("../Services/Verification")
-const { sendVerificationEmail, isSmtpConfigured } = require("../Services/Email")
+const { sendVerificationEmail, sendPasswordResetEmail, isSmtpConfigured } = require("../Services/Email")
 
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -124,6 +124,60 @@ async function handleResendVerification(req, res) {
   }
 }
 
+async function handleForgotPassword(req, res) {
+  const generic = "If an account exists with that email, a reset link has been sent."
+  const { email } = req.body
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ message: "Email is required." })
+  }
+  try {
+    const user = await User.findOne({ email })
+    if (user) {
+      if (user.verified) {
+        const token = generateToken()
+        user.resetHash = hashToken(token)
+        user.resetExpires = defaultExpiry()
+        await user.save()
+        await sendPasswordResetEmail(user.email, token)
+      } else {
+        const token = generateToken()
+        user.verificationHash = hashToken(token)
+        user.verificationExpires = defaultExpiry()
+        await user.save()
+        await sendVerificationEmail(user.email, token)
+      }
+    }
+    return res.status(200).json({ message: generic })
+  } catch {
+    return res.status(200).json({ message: generic })
+  }
+}
+
+async function handleResetPassword(req, res) {
+  const { token, newPassword } = req.body
+  if (!token || typeof token !== "string") {
+    return res.status(400).json({ message: "Reset token is missing." })
+  }
+  const passwordError = validatePassword(newPassword)
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError })
+  }
+  const user = await User.findOne({
+    resetHash: hashToken(token),
+    resetExpires: { $gt: Date.now() },
+  })
+  if (!user) {
+    return res.status(400).json({ message: "This reset link is invalid or has expired." })
+  }
+  const salt = await bcrypt.genSalt(10)
+  user.password = await bcrypt.hash(newPassword, salt)
+  user.verified = true
+  user.resetHash = null
+  user.resetExpires = null
+  await user.save()
+  return res.status(200).json({ message: "Password reset successfully. You can log in now." })
+}
+
 async function handleLogout(req, res) {
   res.cookie("token", "", cookieOptions({ maxAge: 0 }))
   return res.status(200).json({ message: "Logout Successful" })
@@ -145,4 +199,4 @@ async function verifyCookie(req, res) {
   return res.status(200).json(safeUser(user))
 }
 
-module.exports = { handleLogin, handleSignup, handleLogout, fetchUser, verifyCookie, handleVerifyEmail, handleResendVerification }
+module.exports = { handleLogin, handleSignup, handleLogout, fetchUser, verifyCookie, handleVerifyEmail, handleResendVerification, handleForgotPassword, handleResetPassword }

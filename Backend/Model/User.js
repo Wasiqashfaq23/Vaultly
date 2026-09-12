@@ -25,6 +25,14 @@ const schema = new mongoose.Schema({
     verificationExpires: {
         type: Date,
         default: null,
+    },
+    resetHash: {
+        type: String,
+        default: null,
+    },
+    resetExpires: {
+        type: Date,
+        default: null,
     }
 })
 

@@ -61,4 +61,11 @@ function validateSignup({ userName, email, password }) {
   return { valid: errors.length === 0, errors };
 }
 
-module.exports = { validateCreateVault, validateSignup, EMAIL_REGEX };
+function validatePassword(password) {
+  if (!password || typeof password !== "string" || password.length < 8) {
+    return "Password must be at least 8 characters";
+  }
+  return null;
+}
+
+module.exports = { validateCreateVault, validateSignup, validatePassword, EMAIL_REGEX };

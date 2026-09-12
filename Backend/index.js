@@ -17,7 +17,7 @@ const allowedOrigins = process.env.CORS_ORIGINS
 const attempts = new Map()
 
 function loginRateLimiter(req, res, next) {
-  if (req.path !== "/login" && req.path !== "/signup" && req.path !== "/resend-verification") return next()
+  if (req.path !== "/login" && req.path !== "/signup" && req.path !== "/resend-verification" && req.path !== "/forgot-password") return next()
   const key = `${req.ip}:${req.path}`
   const now = Date.now()
   const windowMs = 15 * 60 * 1000

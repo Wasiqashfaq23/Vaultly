@@ -22,4 +22,8 @@ function verificationLink(token) {
   return `${getFrontendUrl()}/?verify-email=${token}`
 }
 
-module.exports = { generateToken, hashToken, defaultExpiry, verificationLink, VERIFICATION_TTL }
+function resetLink(token) {
+  return `${getFrontendUrl()}/?reset-password=${token}`
+}
+
+module.exports = { generateToken, hashToken, defaultExpiry, verificationLink, resetLink, VERIFICATION_TTL }
