@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser")
 const cors = require("cors")
 
 const app = express()
+app.set("trust proxy", 1)
 const port = process.env.PORT || 8001
 
 const { connectToMongo } = require("./connect")
