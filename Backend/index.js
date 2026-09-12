@@ -1,23 +1,46 @@
 require("dotenv").config()
 const express = require("express")
-const app = express()
-const { connectToMongo } = require("./connect")
-const port = 8001
 const cookieParser = require("cookie-parser")
+const cors = require("cors")
 
-const passRouter = require("./Routes/savedPasswords")
+const app = express()
+const port = process.env.PORT || 8001
+
+const { connectToMongo } = require("./connect")
 const userRouter = require("./Routes/User")
-
-const { checkForAuthentication } = require("./Middleware/Auth")
-const cors = require("cors");
-
-
-connectToMongo(process.env.MONGO_URI).then(() => { console.log("Mongo connected") })
+const passRouter = require("./Routes/savedPasswords")
 
 const allowedOrigins = [
   "http://localhost:5174",
-  "http://localhost:5173"
+  "http://localhost:5173",
 ]
+
+const attempts = new Map()
+
+function loginRateLimiter(req, res, next) {
+  if (req.path !== "/login" && req.path !== "/signup") return next()
+  const key = `${req.ip}:${req.path}`
+  const now = Date.now()
+  const windowMs = 15 * 60 * 1000
+  const entry = attempts.get(key) || { count: 0, resetAt: now + windowMs }
+  if (now > entry.resetAt) {
+    entry.count = 0
+    entry.resetAt = now + windowMs
+  }
+  entry.count += 1
+  attempts.set(key, entry)
+  if (entry.count > 10) {
+    return res.status(429).json({ message: "Too many attempts. Try again later." })
+  }
+  next()
+}
+
+function errorHandler(err, req, res, next) {
+  console.error(err)
+  if (res.headersSent) return next(err)
+  return res.status(err.status || 500).json({ message: "Something went wrong" })
+}
+
 app.use(
   cors({
     origin: allowedOrigins,
@@ -30,10 +53,15 @@ app.use(
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(checkForAuthentication)
+app.use(loginRateLimiter)
 app.use(express.static("Public"));
+
 app.use("/", userRouter)
-app.use("/password", checkForAuthentication, passRouter)
+app.use("/password", passRouter)
+
+app.use(errorHandler)
+
+connectToMongo(process.env.MONGO_URI).then(() => { console.log("Mongo connected") })
 
 app.listen(port, () => {
   console.log("Listening at port", port)

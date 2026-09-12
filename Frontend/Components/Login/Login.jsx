@@ -29,12 +29,10 @@ const Login = ({ setCurrPage }) => {
       credentials: "include",
     });
     const result = await res.json();
-    if (result === "Login Successful") {
+    if (res.ok) {
       setCurrPage("dashboard");
-    }
-    if (result == "Invalid Username or Password") {
-      seterror(result);
-      return;
+    } else {
+      seterror(result?.message || "Login failed");
     }
   };
   return (

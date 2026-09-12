@@ -30,12 +30,10 @@ const Signup = ({ setCurrPage }) => {
     });
     reset();
     const result = await res.json();
-    if (result === "Signup Successfull") {
+    if (res.ok) {
       setCurrPage("login");
-    }
-    if (result === "Email already registered") {
-      seterror(result);
-      return;
+    } else {
+      seterror(result?.message || "Signup failed");
     }
   };
 

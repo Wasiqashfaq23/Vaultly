@@ -1,14 +1,13 @@
 const { getUser } = require("../Services/Auth")
 
-function checkForAuthentication(req, res, next) {
-    const tokenCookie = req.cookies?.token
-    req.user = null
-    if (!tokenCookie) {
-        return next()
-    }
-    const token = tokenCookie
-    const user = getUser(token)
-    req.user = user
-    next()
+function requireAuth(req, res, next) {
+  const tokenCookie = req.cookies?.token
+  const user = getUser(tokenCookie)
+  if (!user) {
+    return res.status(401).json({ message: "Not authenticated" })
+  }
+  req.user = user
+  next()
 }
-module.exports = { checkForAuthentication }
+
+module.exports = { requireAuth }

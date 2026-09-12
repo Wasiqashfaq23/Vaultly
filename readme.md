@@ -1,170 +1,211 @@
 # 🔐 Vaultly
 
-### A secure, minimal password manager built with the MERN stack.
+### A full-stack password manager built with the MERN stack — with encryption at rest.
 
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=Node.js&logoColor=white)](https://nodejs.org)
+[![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20Web%20Tokens&logoColor=white)](https://jwt.io)
 
 ---
 
-## About
+## 📋 Table of Contents
 
-Vaultly is a full-stack password manager that lets users securely store, view, edit, and delete credentials for any service. Built with a focus on simplicity and security — passwords are hashed and protected behind authenticated sessions using JWT.
+- [Overview](#-overview)
+- [Features](#-features)
+- [Security Model](#-security-model)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [API Endpoints](#-api-endpoints)
+- [Deployment](#-deployment)
+- [License](#-license)
 
 ---
 
-## Features
+## 🎯 Overview
 
-- 🔑 User authentication — signup and login
-- 🍪 Session management with JWT
+Vaultly is a full-stack password manager that lets users securely store, view, edit, and delete credentials for any service. It demonstrates a security-conscious MERN implementation: vault entries are encrypted at rest, sessions use hardened, HTTP-only cookies, and every mutating route enforces per-user ownership.
+
+---
+
+## ✨ Features
+
+- 🔑 User authentication — signup and login with bcrypt-hashed account passwords
+- 🍪 Session management with JWT stored in an HTTP-only, SameSite cookie
 - 🗄️ Save credentials — service, email, and password
+- 🔐 AES-256-GCM encryption for every vault entry before it touches the database
 - ✏️ Inline edit and delete saved passwords
 - 👁️ Toggle password visibility per entry
-- 🔒 Protected routes — only authenticated users can access their vault
-- 📋 Form validation with React Hook Form + Yup
+- 🚪 Ownership checks on update and delete (IDOR-safe)
+- 📋 Form validation with React Hook Form + Yup (frontend) and server-side validation
+- 🛡️ Login/signup rate limiting + centralized error handling
 
 ---
 
-## Tech Stack
+## 🛡️ Security Model
+
+| Layer | What happens |
+|---|---|
+| **Vault storage** | Every saved password is encrypted with **AES-256-GCM** (random 12-byte IV + auth tag per entry) using `VAULT_MASTER_KEY` before being written to MongoDB. Plaintext only exists in the server during a single request. |
+| **Account passwords** | User login passwords are hashed with **bcrypt (10 rounds)**. The hash is never sent to the client — API responses are sanitized to `_id`, `userName`, `email`. |
+| **Sessions** | JWTs contain only `_id` and `email`, expire after **7 days**, and are delivered in an **HTTP-only, SameSite=Lax** cookie (`Secure` in production). |
+| **Authorization** | Create/read/update/delete are all scoped by `createdBy`; updates and deletes return 404 for anything that isn't yours. |
+| **Abuse** | Login and signup are rate-limited per IP (10 attempts / 15 min). |
+
+> **Known tradeoff:** encryption is **server-side** — the server can decrypt entries it serves. This is a pragmatic, dependency-free design. A future upgrade is *client-side (zero-knowledge)* encryption, where entries are encrypted in the browser with a key derived from the user's master password.
+
+> **Note for existing databases:** if you ran Vaultly before server-side encryption was added, previously stored entries remain as plaintext. Encryption applies to newly created/updated entries — use a fresh database for development.
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React, React Hook Form, Yup |
-| Backend | Node.js, Express |
+| Frontend | React, React Hook Form, Yup, Vite, ESLint |
+| Backend | Node.js, Express 5 |
 | Database | MongoDB, Mongoose |
-| Auth | JWT |
+| Auth | JWT, bcrypt, HTTP-only cookies |
+| Encryption | Node `crypto` (AES-256-GCM) |
 | Styling | CSS |
-| Config | dotenv, CORS |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-Password-Manager/
+Vaultly/
 ├── Backend/
 │   ├── Controller/
-│   │   ├── savedPasswords.js
-│   │   └── User.js            
+│   │   ├── savedPasswords.js      # Vault CRUD (encrypted, ownership-scoped)
+│   │   └── User.js                # Auth logic, sanitized user responses
 │   ├── Middleware/
-│   │   └── Auth.js          
+│   │   └── Auth.js                # requireAuth (401 on missing/invalid token)
 │   ├── Model/
-│   │   ├── savedPasswords.js
-│   │   └── User.js          
+│   │   ├── savedPasswords.js      # Vault schema
+│   │   └── User.js                # Account schema
 │   ├── Routes/
 │   │   ├── savedPasswords.js
-│   │   └── User.js            
+│   │   └── User.js
 │   ├── Services/
-│   │   └── Auth.js            
-│   ├── .env
-│   ├── connect.js             
-│   └── index.js               
+│   │   └── Auth.js                # JWT sign/verify (no secrets in payload)
+│   ├── utils/
+│   │   ├── crypto.js              # AES-256-GCM encrypt/decrypt
+│   │   └── validate.js            # Server-side validation
+│   ├── .env.example
+│   ├── connect.js
+│   └── index.js                   # App setup, rate limiter, error handler
 │
 └── Frontend/
     ├── Components/
     │   ├── Dashboard/
-    │   │   ├── Dashboard.jsx
-    │   │   └── Dashboard.css
     │   ├── Login/
-    │   │   ├── Login.jsx
-    │   │   └── Login.css
     │   ├── Signup/
-    │   │   ├── Signup.jsx
-    │   │   └── Signup.css
-    │   ├── Navbar.jsx
-    │   └── Navbar.css
+    │   └── Navbar.jsx
     ├── src/
     │   ├── App.jsx
-    │   ├── App.css
-    │   ├── main.jsx
-    │   └── index.css
-    ├── .env
+    │   └── main.jsx
+    ├── .env.example
     └── index.html
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js
-- MongoDB Atlas account or local MongoDB
+- Node.js 22 (see `.nvmrc`)
+- MongoDB (local or Atlas)
 
-### Installation
-
-1. Clone the repo
-
-```bash
-git clone https://github.com/Wasiqashfaq23/Password-Manger.git
-cd Password-Manger
-```
-
-2. Setup Backend
+### 1. Backend
 
 ```bash
 cd Backend
 npm install
 ```
 
-Create a `.env` file in the `Backend/` folder:
+Create `Backend/.env` (see `.env.example`):
 
 ```env
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
+MONGO_URI=mongodb://localhost:27017/vaultly
+JWT_SECRET=<openssl rand -hex 32>
+VAULT_MASTER_KEY=<openssl rand -hex 32>
+NODE_ENV=development
 PORT=8001
 ```
 
-Create a `.env` file in the `Frontend/` folder:
+`VAULT_MASTER_KEY` must be 32 bytes (64 hex characters) — generate with:
 
-```env
-VITE_API_URL=http://localhost:8001
+```bash
+openssl rand -hex 32
 ```
 
 Start the backend:
 
 ```bash
-node index.js
+npm start        # or: node index.js
 ```
 
-3. Setup Frontend
+### 2. Frontend
 
 ```bash
 cd Frontend
 npm install
+```
+
+Create `Frontend/.env` (see `.env.example`):
+
+```env
+VITE_API_URL=http://localhost:8001
+```
+
+Run the dev server:
+
+```bash
 npm run dev
 ```
 
+Open `http://localhost:5173` — sign up, log in, and save your first entry.
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/signup` | Register a new user | ❌ |
-| POST | `/login` | Login and receive session cookie | ❌ |
-| POST | `/logout` | Clear session cookie | ❌ |
-| GET | `/me` | Verify session | ✅ |
-| GET | `/password` | Get all saved passwords | ✅ |
-| POST | `/password` | Save a new password | ✅ |
-| PATCH | `/password/:id` | Update a password | ✅ |
-| DELETE | `/password/:id` | Delete a password | ✅ |
+| Method | Endpoint | Description | Auth Required | Success | Errors |
+|--------|----------|-------------|:-------------:|:-------:|:-------|
+| POST | `/signup` | Register a new user | ❌ | 201 | 400, 409 |
+| POST | `/login` | Login and receive session cookie | ❌ | 200 | 400, 401, 429 |
+| POST | `/logout` | Clear session cookie | ❌ | 200 | — |
+| GET | `/me` | Get the current user (sanitized) | ✅ | 200 | 401 |
+| GET | `/verify-cookie` | Validate the session cookie | ✅ | 200 | 401 |
+| GET | `/password` | Get all of your saved passwords | ✅ | 200 | 401 |
+| POST | `/password` | Save a new password | ✅ | 201 | 400, 401, 409 |
+| PATCH | `/password/:id` | Update your saved password | ✅ | 200 | 400, 401, 404 |
+| DELETE | `/password/:id` | Delete your saved password | ✅ | 200 | 400, 401, 404 |
 
----
-
-## Security
-
-- Passwords are stored in MongoDB behind authenticated routes
-- CORS configured to only allow requests from the frontend origin
+All responses are JSON. Errors use `{ "message": "..." }`.
 
 ---
 
-## Author
+## ☁️ Deployment
 
-**Wasiq**
+Vaultly is deployed on **Render** (backend) and **Vercel** (frontend).
+
+For the hosted backend, set the same environment variables in Render's dashboard:
+
+```
+MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production
+```
+
+On Vercel, set `VITE_API_URL` to the Render backend URL and enable automatic deployment for the `Frontend/` root directory. CORS origins in `Backend/index.js` must include your production frontend URL.
+
+> 🚨 Rotate `JWT_SECRET` and `VAULT_MASTER_KEY` if the app was ever public with known credentials.
 
 ---
+
+## 📄 License
+
+Released under the [MIT License](./LICENSE). © 2026 Wasiq Ashfaq
