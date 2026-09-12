@@ -135,6 +135,7 @@ JWT_SECRET=<openssl rand -hex 32>
 VAULT_MASTER_KEY=<openssl rand -hex 32>
 NODE_ENV=development
 PORT=8001
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
 `VAULT_MASTER_KEY` must be 32 bytes (64 hex characters) — generate with:
@@ -197,10 +198,10 @@ Vaultly is deployed on **Render** (backend) and **Vercel** (frontend).
 For the hosted backend, set the same environment variables in Render's dashboard:
 
 ```
-MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production
+MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production, CORS_ORIGINS
 ```
 
-On Vercel, set `VITE_API_URL` to the Render backend URL and enable automatic deployment for the `Frontend/` root directory. CORS origins in `Backend/index.js` must include your production frontend URL.
+On Vercel, set `VITE_API_URL` to the Render backend URL and enable automatic deployment for the `Frontend/` root directory. Set `CORS_ORIGINS` (comma-separated) on Render to your production frontend URLs, e.g. `https://vaultly.vercel.app,http://localhost:5173` — cookie-based auth requires the backend to allow the frontend origin with credentials.
 
 > 🚨 Rotate `JWT_SECRET` and `VAULT_MASTER_KEY` if the app was ever public with known credentials.
 
