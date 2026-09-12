@@ -10,9 +10,34 @@ const { connectToMongo } = require("./connect")
 const userRouter = require("./Routes/User")
 const passRouter = require("./Routes/savedPasswords")
 
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5174", "http://localhost:5173"]
+const FALLBACK_ORIGINS = ["http://localhost:5174", "http://localhost:5173"]
+
+function parseOrigins(raw) {
+  if (!raw) return []
+  const seen = new Set()
+  const origins = []
+  for (const entry of raw.split(",")) {
+    const origin = entry.trim().replace(/\/+$/, "")
+    if (origin && !seen.has(origin)) {
+      seen.add(origin)
+      origins.push(origin)
+    }
+  }
+  return origins
+}
+
+const allowedOrigins = (() => {
+  const origins = parseOrigins(process.env.CORS_ORIGINS)
+  if (origins.length === 0) {
+    if (process.env.CORS_ORIGINS) {
+      console.warn("[Vaultly] CORS_ORIGINS set but produced no valid origins, falling back to defaults")
+    }
+    return FALLBACK_ORIGINS
+  }
+  return origins
+})()
+
+console.log("[Vaultly] Allowed CORS origins:", allowedOrigins.join(", ") || "(none)")
 
 const attempts = new Map()
 
