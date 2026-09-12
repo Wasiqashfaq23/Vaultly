@@ -31,6 +31,14 @@
   align-items: center;
 }
 
+.navbar .user-info .welcome {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #555;
+}
+
 .logout-btn {
   padding: 8px 15px;
   border: none;
@@ -69,19 +77,54 @@
   margin-bottom: 15px;
 }
 
-.form-group input {
+.form-group .field {
   flex: 1;
+}
+
+.form-group input {
+  width: 100%;
   padding: 10px;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
+.password-input {
+  position: relative;
+}
 
-.show-input {
+.password-input input {
+  padding-right: 40px;
+}
+
+.icon-btn {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  cursor: "pointer";
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #777;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon-btn.static {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  color: #3498db;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-top: 5px;
 }
 
 .save-btn {
@@ -93,8 +136,13 @@
   cursor: pointer;
 }
 
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
   background-color: #2980b9;
+}
+
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .password-list {
@@ -109,9 +157,41 @@
   color: #333;
 }
 
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.list-header h2 {
+  margin-bottom: 0;
+}
+
+.search-box {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: 260px;
+  max-width: 100%;
+  font-size: 0.95rem;
+}
+
+.search-box:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 620px;
 }
 
 thead {
@@ -127,18 +207,38 @@ thead th {
 tbody td {
   padding: 12px 10px;
   border-top: 1px solid #eee;
+  vertical-align: middle;
 }
 
-td>input {
+td > input {
   flex: 1;
   padding: 10px;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
-td>span{
-  padding:20px ;
+
+td > input:focus,
+.password-input input:focus {
+  outline: none;
+  border-color: #3498db;
 }
 
+.password-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.password-dots {
+  word-break: break-all;
+  max-width: 140px;
+}
+
+.table-state {
+  text-align: center;
+  color: #888;
+  padding: 24px 10px;
+}
 
 .actions {
   display: flex;
@@ -147,16 +247,22 @@ td>span{
 
 .edit-btn,
 .save-changes-btn,
+.cancel-btn,
 .delete-btn {
   padding: 5px 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .save-changes-btn {
   background-color: #2ecc71;
   color: white;
+}
+
+.save-changes-btn:hover:not(:disabled) {
+  background-color: #27ae60;
 }
 
 .edit-btn {
@@ -168,16 +274,53 @@ td>span{
   background-color: #27ae60;
 }
 
+.cancel-btn {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #7f8c8d;
+}
+
 .delete-btn {
   background-color: #e74c3c;
   color: white;
 }
 
-.delete-btn:hover {
+.delete-btn:hover:not(:disabled) {
   background-color: #c0392b;
 }
 
-.add-password h2 {
-  margin-bottom: 15px;
-  color: #333;
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .navbar {
+    padding: 15px 20px;
+  }
+
+  .navbar .user-info .welcome {
+    display: none;
+  }
+
+  .form-group {
+    flex-direction: column;
+  }
+
+  .main-content {
+    padding: 0 10px;
+    margin: 20px auto;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
 }

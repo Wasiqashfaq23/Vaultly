@@ -65,22 +65,45 @@
   transition: background-color 0.2s ease;
 }
 
-.login-btn:hover {
+.login-btn:hover:not(:disabled) {
   background-color: #2980b9;
 }
 
-.signup-link {
-  margin-top: 15px;
-  text-align: center;
-  font-size: 0.9rem;
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-.signup-link a {
+.password-input {
+  position: relative;
+  width: 100%;
+}
+
+.password-input input {
+  padding-right: 40px;
+}
+
+.icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #777;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon-btn:hover {
   color: #3498db;
-  text-decoration: none;
 }
 
-.signup-link a:hover {
-  text-decoration: underline;
+.form-error {
+  margin-top: 12px;
+  text-align: center;
 }
 

@@ -64,8 +64,111 @@
   transition: background-color 0.2s ease;
 }
 
-.signup-btn:hover {
+.signup-btn:hover:not(:disabled) {
   background-color: #2980b9;
+}
+
+.signup-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.password-input {
+  position: relative;
+  width: 100%;
+}
+
+.password-input input {
+  padding-right: 40px;
+}
+
+.icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #777;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon-btn:hover {
+  color: #3498db;
+}
+
+.strength {
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.strength-bars .bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e0e0e0;
+}
+
+.strength-bars .bar.filled-1 {
+  background-color: #e74c3c;
+}
+
+.strength-bars .bar.filled-2 {
+  background-color: #e67e22;
+}
+
+.strength-bars .bar.filled-3 {
+  background-color: #f1c40f;
+}
+
+.strength-bars .bar.filled-4 {
+  background-color: #2ecc71;
+}
+
+.strength-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.strength-label.s-1 {
+  color: #e74c3c;
+}
+
+.strength-label.s-2 {
+  color: #e67e22;
+}
+
+.strength-label.s-3 {
+  color: #b7950b;
+}
+
+.strength-label.s-4 {
+  color: #27ae60;
+}
+
+.success {
+  color: #2ecc71;
+  font-size: 0.9rem;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.form-success {
+  margin-top: 12px;
+}
+
+.form-error {
+  margin-top: 12px;
+  text-align: center;
 }
 
 .login-link {

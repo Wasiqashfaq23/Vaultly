@@ -1,18 +1,22 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import "./Login.css";
 import { useState } from "react";
+import { GoEye, GoEyeClosed } from "react-icons/go";
+import "./Login.css";
+import { apiFetch } from "../../src/api";
 
 const schema = yup
   .object({
-    email: yup.string().required("Email is required"),
+    email: yup.string().trim().required("Email is required").email("Enter a valid email"),
     password: yup.string().required("Password is required"),
   })
   .required();
 
 const Login = ({ setCurrPage }) => {
-  const [error, seterror] = useState("")
+  const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const {
     register,
     handleSubmit,
@@ -21,20 +25,26 @@ const Login = ({ setCurrPage }) => {
   } = useForm({ resolver: yupResolver(schema) });
 
   const onSubmit = async (data) => {
-    reset()
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-      credentials: "include",
-    });
-    const result = await res.json();
-    if (res.ok) {
-      setCurrPage("dashboard");
-    } else {
-      seterror(result?.message || "Login failed");
+    setLoading(true)
+    setError("")
+    try {
+      const { res, data: result } = await apiFetch("/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        reset();
+        setCurrPage("dashboard");
+      } else {
+        setError(result?.message || "Login failed");
+      }
+    } catch {
+      setError("Cannot reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
     <>
       <div className="login-container">
@@ -42,20 +52,44 @@ const Login = ({ setCurrPage }) => {
           <h2>Login</h2>
           <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="form-group">
-              <input {...register("email")} placeholder="Email" />
+              <input
+                {...register("email")}
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                disabled={loading}
+              />
               <p className="error">{errors.email?.message}</p>
             </div>
             <div className="form-group">
-              <div>
-                <input {...register("password")} type="password" placeholder="Password" />
+              <div className="password-input">
+                <input
+                  {...register("password")}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <GoEye /> : <GoEyeClosed />}
+                </button>
               </div>
               <p className="error">{errors.password?.message}</p>
             </div>
-            <button type="submit" className="login-btn">Login</button>
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Logging in…" : "Login"}
+            </button>
           </form>
-          <p className="signup-link">
-          </p>
-          {error && <p style={{ color: "red" }}>{error}</p>}
+          {error && (
+            <p className="error form-error" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </>
