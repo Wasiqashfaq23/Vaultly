@@ -1,24 +1,17 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-}
-
 .verify-container {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--nav-h));
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f2f5;
+  background-color: var(--bg);
   padding: 20px;
 }
 
 .verify-card {
-  background-color: #fff;
+  background-color: var(--card);
   padding: 32px 28px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   width: 380px;
   max-width: 100%;
   text-align: center;
@@ -26,11 +19,12 @@
 
 .verify-card h2 {
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text);
+  font-size: 1.3rem;
 }
 
 .verify-card p {
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.5;
   margin-bottom: 16px;
 }
@@ -48,18 +42,18 @@
 }
 
 .verify-badge.success {
-  background-color: #2ecc71;
+  background-color: var(--green);
 }
 
 .verify-badge.error {
-  background-color: #e74c3c;
+  background-color: var(--red);
 }
 
 .verify-spinner {
   width: 32px;
   height: 32px;
   border: 3px solid #ddd;
-  border-top-color: #3498db;
+  border-top-color: var(--blue);
   border-radius: 50%;
   margin: 0 auto 16px;
   animation: verify-spin 0.8s linear infinite;
@@ -74,28 +68,32 @@
 .verify-primary-btn {
   width: 100%;
   padding: 12px;
-  background-color: #3498db;
+  background-color: var(--blue);
   color: #fff;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  font-family: var(--font);
+  transition: background-color 0.15s ease;
 }
 
 .verify-primary-btn:hover {
-  background-color: #2980b9;
+  background-color: var(--blue-dark);
 }
 
 .verify-secondary-btn {
+  width: 100%;
   padding: 10px;
   background-color: #ecf0f1;
-  color: #2980b9;
+  color: var(--blue-dark);
   border: 1px solid #bdc3c7;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 0.9rem;
+  font-family: var(--font);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .verify-secondary-btn:hover:not(:disabled) {
@@ -114,24 +112,17 @@
   gap: 8px;
 }
 
-.resend-form input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-.resend-form input:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
 .link-btn {
   background: none;
   border: none;
-  color: #3498db;
+  color: var(--blue);
   cursor: pointer;
   font-size: 0.9rem;
+  font-family: var(--font);
   margin-top: 12px;
   text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: var(--blue-dark);
 }

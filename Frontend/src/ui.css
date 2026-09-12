@@ -1,0 +1,153 @@
+/* Shared UI primitives used across all pages. Colors match the original palette. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.field input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"] {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  font-family: var(--font);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field input:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+.error {
+  color: var(--red);
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  padding-right: 40px;
+}
+
+.password-input.with-gen input {
+  padding-right: 78px;
+}
+
+.icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #777;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: var(--blue);
+}
+
+.icon-btn.static {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.strength {
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.strength-bars .bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e0e0e0;
+}
+
+.strength-bars .bar.filled-1 {
+  background-color: var(--red);
+}
+
+.strength-bars .bar.filled-2 {
+  background-color: var(--orange);
+}
+
+.strength-bars .bar.filled-3 {
+  background-color: #f1c40f;
+}
+
+.strength-bars .bar.filled-4 {
+  background-color: var(--green);
+}
+
+.strength-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.strength-label.s-1 {
+  color: var(--red);
+}
+
+.strength-label.s-2 {
+  color: var(--orange);
+}
+
+.strength-label.s-3 {
+  color: #b7950b;
+}
+
+.strength-label.s-4 {
+  color: var(--green-dark);
+}
+
+/* Skeleton shimmer for loading rows */
+.skeleton-bar {
+  display: inline-block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eceff1 25%, #e2e6ea 50%, #eceff1 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

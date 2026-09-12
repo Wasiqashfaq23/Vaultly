@@ -13,7 +13,7 @@ const schema = yup
   })
   .required();
 
-const Login = ({ setCurrPage }) => {
+const Login = ({ setCurrPage, onLoginSuccess }) => {
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -47,7 +47,7 @@ const Login = ({ setCurrPage }) => {
       });
       if (res.ok) {
         reset();
-        setCurrPage("dashboard");
+        onLoginSuccess?.(result?.user || null);
       } else if (res.status === 403) {
         setVerifyEmail(result?.email || data.email);
         setShowResend(true);
@@ -85,6 +85,7 @@ const Login = ({ setCurrPage }) => {
       <div className="login-container">
         <div className="login-card">
           <h2>Login</h2>
+          <p className="login-sub">Welcome back. Sign in to your vault.</p>
           <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="form-group">
               <label htmlFor="login-email">Email</label>

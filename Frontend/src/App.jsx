@@ -36,6 +36,7 @@ const App = () => {
   })
   const [signupEmail, setSignupEmail] = useState("")
   const [signupFallbackLink, setSignupFallbackLink] = useState("")
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     if (verifyToken || resetToken) {
@@ -44,8 +45,14 @@ const App = () => {
     }
     let active = true
     apiFetch('/verify-cookie')
-      .then(({ res }) => {
-        if (active) setCurrPage(res.ok ? PAGE.DASHBOARD : PAGE.LOGIN)
+      .then(({ res, data }) => {
+        if (!active) return
+        if (res.ok) {
+          setUser(data || null)
+          setCurrPage(PAGE.DASHBOARD)
+        } else {
+          setCurrPage(PAGE.LOGIN)
+        }
       })
       .catch(() => {
         if (active) setCurrPage(PAGE.LOGIN)
@@ -61,7 +68,24 @@ const App = () => {
     setCurrPage(PAGE.VERIFY_PROMPT)
   }
 
-  const handleSessionExpired = () => setCurrPage(PAGE.LOGIN)
+  const handleLoginSuccess = (loggedUser) => {
+    setUser(loggedUser || null)
+    setCurrPage(PAGE.DASHBOARD)
+  }
+
+  const handleSessionExpired = () => {
+    setUser(null)
+    setCurrPage(PAGE.LOGIN)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/logout', { method: "POST" })
+    } catch {
+      /* ignore */
+    }
+    handleSessionExpired()
+  }
 
   if (currPage === PAGE.LOADING) {
     return (
@@ -75,12 +99,18 @@ const App = () => {
     )
   }
 
-  const showNav = currPage !== PAGE.DASHBOARD
-
   return (
     <>
-      {showNav && <Navbar setCurrPage={setCurrPage} />}
-      {currPage === PAGE.LOGIN && <Login setCurrPage={setCurrPage} />}
+      <Navbar
+        view={currPage === PAGE.DASHBOARD ? "app" : "auth"}
+        userName={user?.userName}
+        activePage={currPage}
+        onNavigate={setCurrPage}
+        onLogout={handleLogout}
+      />
+      {currPage === PAGE.LOGIN && (
+        <Login setCurrPage={setCurrPage} onLoginSuccess={handleLoginSuccess} />
+      )}
       {currPage === PAGE.SIGNUP && <Signup onSignupSuccess={handleSignupSuccess} />}
       {currPage === PAGE.DASHBOARD && <Dashboard onSessionExpired={handleSessionExpired} />}
       {currPage === PAGE.VERIFY_EMAIL && (

@@ -1,24 +1,17 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-}
-
 .verify-prompt-container {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--nav-h));
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f2f5;
+  background-color: var(--bg);
   padding: 20px;
 }
 
 .verify-prompt-card {
-  background-color: #fff;
+  background-color: var(--card);
   padding: 32px 28px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   width: 380px;
   max-width: 100%;
   text-align: center;
@@ -26,18 +19,19 @@
 
 .verify-prompt-card h2 {
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text);
+  font-size: 1.3rem;
 }
 
 .verify-prompt-card p {
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.5;
   margin-bottom: 8px;
 }
 
 .verify-hint {
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 16px;
 }
 
@@ -54,24 +48,26 @@
 }
 
 .verify-badge.info {
-  background-color: #3498db;
+  background-color: var(--blue);
 }
 
 .verify-badge.warn {
-  background-color: #e67e22;
+  background-color: var(--orange);
 }
 
 .verify-fallback-link {
   display: inline-block;
   margin: 6px 0 4px;
   padding: 10px 16px;
-  background-color: #f39c12;
+  background-color: var(--amber);
   color: #fff;
-  border-radius: 7px;
+  border-radius: 8px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 0.95rem;
+  font-family: var(--font);
   word-break: break-all;
+  transition: background-color 0.15s ease;
 }
 
 .verify-fallback-link:hover {
@@ -79,14 +75,16 @@
 }
 
 .verify-secondary-btn {
+  width: 100%;
   padding: 10px;
   background-color: #ecf0f1;
-  color: #2980b9;
+  color: var(--blue-dark);
   border: 1px solid #bdc3c7;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 0.9rem;
+  font-family: var(--font);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .verify-secondary-btn.wide {
@@ -105,15 +103,20 @@
 .verify-message {
   margin-top: 12px;
   font-size: 0.9rem;
-  color: #2ecc71;
+  color: var(--green);
 }
 
 .link-btn {
   background: none;
   border: none;
-  color: #3498db;
+  color: var(--blue);
   cursor: pointer;
   font-size: 0.9rem;
+  font-family: var(--font);
   margin-top: 12px;
   text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: var(--blue-dark);
 }

@@ -1,5 +1,5 @@
 import "./Dashboard.css"
-import { GoEye, GoEyeClosed, GoCopy, GoCheck } from "react-icons/go"
+import { GoEye, GoEyeClosed, GoCopy, GoCheck, GoPencil, GoTrash, GoKey, GoShield, GoX } from "react-icons/go"
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -23,7 +23,6 @@ const Dashboard = ({ onSessionExpired }) => {
   const [editId, setEditId] = useState(null)
   const [editData, setEditData] = useState({})
   const [passwords, setpasswords] = useState([])
-  const [user, setuser] = useState("")
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [showInput, setShowInput] = useState(false)
@@ -33,7 +32,9 @@ const Dashboard = ({ onSessionExpired }) => {
   const [saving, setSaving] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmId, setConfirmId] = useState(null)
   const clipboardClearRef = useRef(null)
+  const serviceInputRef = useRef(null)
   const {
     register,
     handleSubmit,
@@ -68,21 +69,8 @@ const Dashboard = ({ onSessionExpired }) => {
     }
   }
 
-  const fetchUser = async () => {
-    try {
-      const { res, data } = await apiFetch('/me')
-      if (sessionLost(res)) return
-      if (res.ok) setuser(data?.userName || "")
-    } catch {
-      /* ignore */
-    }
-  }
-
   useEffect(() => {
-    (async () => {
-      await fetchPasswords()
-      await fetchUser()
-    })()
+    fetchPasswords()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -102,15 +90,6 @@ const Dashboard = ({ onSessionExpired }) => {
       }
       return next
     })
-  }
-
-  const handleLogout = async () => {
-    try {
-      await apiFetch('/logout', { method: "POST" })
-    } catch {
-      /* ignore */
-    }
-    if (typeof onSessionExpired === "function") onSessionExpired()
   }
 
   const onSubmit = async (data) => {
@@ -168,6 +147,7 @@ const Dashboard = ({ onSessionExpired }) => {
 
   const handleEdit = (p) => {
     setEditId(p._id)
+    setConfirmId(null)
     setShowEditInput(false)
     setEditData({ service: p.service, email: p.email, password: p.password })
   }
@@ -214,9 +194,6 @@ const Dashboard = ({ onSessionExpired }) => {
   const handleDelete = async (id) => {
     const item = passwords.find((p) => p._id === id)
     const name = item?.service || "this service"
-    if (!window.confirm(`Delete the saved password for "${name}"? This cannot be undone.`)) {
-      return
-    }
     setDeletingId(id)
     try {
       const { res, data: result } = await apiFetch(`/password/${id}`, {
@@ -224,16 +201,24 @@ const Dashboard = ({ onSessionExpired }) => {
       })
       if (sessionLost(res)) return
       if (res.ok) {
-        toast("Password deleted")
+        toast(`Password for "${name}" deleted`)
+        setConfirmId(null)
         fetchPasswords()
       } else {
         toast(result?.message || "Could not delete password", "error")
+        setConfirmId(null)
       }
     } catch {
       toast("Cannot reach the server.", "error")
+      setConfirmId(null)
     } finally {
       setDeletingId(null)
     }
+  }
+
+  const focusAddField = () => {
+    setShowInput(false)
+    requestAnimationFrame(() => serviceInputRef.current?.focus())
   }
 
   const query = search.trim().toLowerCase()
@@ -248,15 +233,31 @@ const Dashboard = ({ onSessionExpired }) => {
   const renderTableBody = () => {
     if (loading) {
       return (
-        <tr>
-          <td colSpan="4" className="table-state">Loading passwords…</td>
-        </tr>
+        <>
+          {[0, 1, 2].map((i) => (
+            <tr key={i} className="skeleton-row">
+              <td><span className="skeleton-bar" style={{ width: "40%" }} /></td>
+              <td><span className="skeleton-bar" style={{ width: "60%" }} /></td>
+              <td><span className="skeleton-bar" style={{ width: "45%" }} /></td>
+              <td><span className="skeleton-bar" style={{ width: "70%" }} /></td>
+            </tr>
+          ))}
+        </>
       )
     }
     if (passwords.length === 0) {
       return (
         <tr>
-          <td colSpan="4" className="table-state">No passwords saved yet. Add one above!</td>
+          <td colSpan="4" className="table-state">
+            <div className="empty-state">
+              <GoShield className="empty-icon" aria-hidden="true" />
+              <p className="empty-title">No passwords saved yet</p>
+              <p className="empty-sub">Store your first login and we’ll keep it safe for you.</p>
+              <button type="button" className="empty-cta" onClick={focusAddField}>
+                Add your first password
+              </button>
+            </div>
+          </td>
         </tr>
       )
     }
@@ -268,207 +269,240 @@ const Dashboard = ({ onSessionExpired }) => {
       )
     }
     return filtered.map((p) => (
-      <tbody key={p._id}>
-        <tr className={editId === p._id ? "editing-row" : ""}>
-          {editId === p._id ? (
-            <>
-              <td data-label="Service">
+      <tr key={p._id} className={editId === p._id ? "editing-row" : ""}>
+        {editId === p._id ? (
+          <>
+            <td data-label="Service">
+              <input
+                type="text"
+                aria-label="Service"
+                aria-invalid={Boolean(editError && !editData.service?.trim())}
+                value={editData.service}
+                onChange={(e) => setEditData({ ...editData, service: e.target.value })}
+                placeholder="Service"
+              />
+            </td>
+            <td data-label="Email">
+              <input
+                type="text"
+                aria-label="Email"
+                aria-invalid={Boolean(editError && (!editData.email?.trim() || !EMAIL_REGEX.test(editData.email.trim())))}
+                value={editData.email}
+                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                placeholder="Email"
+              />
+            </td>
+            <td data-label="Password">
+              <div className="password-input with-gen">
                 <input
-                  type="text"
-                  aria-label="Service"
-                  aria-invalid={Boolean(editError && !editData.service?.trim())}
-                  value={editData.service}
-                  onChange={(e) => setEditData({ ...editData, service: e.target.value })}
-                  placeholder="Service"
+                  type={showEditInput ? "text" : "password"}
+                  aria-label="Password"
+                  aria-invalid={Boolean(editError && !editData.password)}
+                  value={editData.password}
+                  onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+                  placeholder="Password"
                 />
-              </td>
-              <td data-label="Email">
-                <input
-                  type="text"
-                  aria-label="Email"
-                  aria-invalid={Boolean(editError && (!editData.email?.trim() || !EMAIL_REGEX.test(editData.email.trim())))}
-                  value={editData.email}
-                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                  placeholder="Email"
-                />
-              </td>
-              <td data-label="Password">
-                <div className="password-input">
-                  <input
-                    type={showEditInput ? "text" : "password"}
-                    aria-label="Password"
-                    aria-invalid={Boolean(editError && !editData.password)}
-                    value={editData.password}
-                    onChange={(e) => setEditData({ ...editData, password: e.target.value })}
-                    placeholder="Password"
-                  />
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={showEditInput ? "Hide password" : "Show password"}
-                    onClick={() => setShowEditInput(!showEditInput)}
-                  >
-                    {showEditInput ? <GoEye /> : <GoEyeClosed />}
-                  </button>
-                </div>
-                <button type="button" className="gen-link" onClick={handleGenerateEdit}>
-                  Generate
-                </button>
-              </td>
-              <td className="actions" data-label="Actions">
-                <button type="button" className="save-changes-btn" disabled={editSaving || Boolean(editError)} onClick={handleSaveEdit}>
-                  {editSaving ? "Saving…" : "Save"}
+                <button
+                  type="button"
+                  className="icon-btn gen-btn"
+                  aria-label="Generate strong password"
+                  title="Generate password"
+                  onClick={handleGenerateEdit}
+                >
+                  <GoKey />
                 </button>
                 <button
                   type="button"
-                  className="cancel-btn"
-                  aria-label="Cancel editing"
-                  onClick={() => {
-                    setEditId(null)
-                    setEditData({})
-                  }}
+                  className="icon-btn"
+                  aria-label={showEditInput ? "Hide password" : "Show password"}
+                  onClick={() => setShowEditInput(!showEditInput)}
                 >
-                  Exit
+                  {showEditInput ? <GoEye /> : <GoEyeClosed />}
                 </button>
-              </td>
-            </>
-          ) : (
-            <>
-              <td data-label="Service">{p.service}</td>
-              <td data-label="Email">{p.email}</td>
-              <td data-label="Password">
-                <div className="password-cell">
-                  <span className="password-dots">{visiblePasswords[p._id] ? p.password : "••••••••"}</span>
-                  <button
-                    type="button"
-                    className="icon-btn static"
-                    aria-label={visiblePasswords[p._id] ? "Hide password" : "Show password"}
-                    onClick={() => toggleVisibility(p._id)}
-                  >
-                    {visiblePasswords[p._id] ? <GoEye /> : <GoEyeClosed />}
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn static"
-                    aria-label="Copy password"
-                    onClick={() => handleCopy(p._id)}
-                  >
-                    {copiedId === p._id ? <GoCheck /> : <GoCopy />}
-                  </button>
-                </div>
-              </td>
-              <td className="actions" data-label="Actions">
-                <button type="button" className="edit-btn" onClick={() => handleEdit(p)}>Edit</button>
+              </div>
+              {editError && <p className="error">{editError}</p>}
+            </td>
+            <td className="actions" data-label="Actions">
+              <button type="button" className="save-changes-btn" disabled={editSaving || Boolean(editError)} onClick={handleSaveEdit}>
+                {editSaving ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                className="cancel-btn"
+                aria-label="Cancel editing"
+                onClick={() => {
+                  setEditId(null)
+                  setEditData({})
+                }}
+              >
+                Exit
+              </button>
+            </td>
+          </>
+        ) : (
+          <>
+            <td data-label="Service">{p.service}</td>
+            <td data-label="Email">{p.email}</td>
+            <td data-label="Password">
+              <div className="password-cell">
+                <span className="password-dots">{visiblePasswords[p._id] ? p.password : "••••••••"}</span>
                 <button
                   type="button"
-                  className="delete-btn"
-                  disabled={deletingId === p._id}
-                  onClick={() => handleDelete(p._id)}
+                  className="icon-btn static"
+                  aria-label={visiblePasswords[p._id] ? "Hide password" : "Show password"}
+                  title={visiblePasswords[p._id] ? "Hide password" : "Show password"}
+                  onClick={() => toggleVisibility(p._id)}
                 >
-                  {deletingId === p._id ? "Deleting…" : "Delete"}
+                  {visiblePasswords[p._id] ? <GoEye /> : <GoEyeClosed />}
                 </button>
-              </td>
-            </>
-          )}
-        </tr>
-        {editId === p._id && editError && (
-          <tr>
-            <td colSpan="4" className="edit-error">{editError}</td>
-          </tr>
+                <button
+                  type="button"
+                  className="icon-btn static"
+                  aria-label="Copy password"
+                  title="Copy to clipboard"
+                  onClick={() => handleCopy(p._id)}
+                >
+                  {copiedId === p._id ? <GoCheck /> : <GoCopy />}
+                </button>
+              </div>
+            </td>
+            <td className="actions" data-label="Actions">
+              {confirmId === p._id ? (
+                <div className="confirm-bar">
+                  <span className="confirm-text">Delete anyway?</span>
+                  <button
+                    type="button"
+                    className="confirm-yes"
+                    disabled={deletingId === p._id}
+                    onClick={() => handleDelete(p._id)}
+                  >
+                    {deletingId === p._id ? "Deleting…" : "Delete"}
+                  </button>
+                  <button type="button" className="confirm-no" onClick={() => setConfirmId(null)}>
+                    Keep
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="action-btn"
+                    aria-label={`Edit password for ${p.service}`}
+                    title="Edit"
+                    onClick={() => handleEdit(p)}
+                  >
+                    <GoPencil />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-btn danger"
+                    aria-label={`Delete password for ${p.service}`}
+                    title="Delete"
+                    disabled={deletingId === p._id}
+                    onClick={() => setConfirmId(p._id)}
+                  >
+                    <GoTrash />
+                  </button>
+                </>
+              )}
+            </td>
+          </>
         )}
-      </tbody>
+      </tr>
     ))
   }
 
   return (
-    <>
-      <div className="dashboard-container">
-        <nav className="navbar">
-          <div className="logo">Vaultly</div>
-          <div className="user-info">
-            <span className="welcome">Welcome, {user || "friend"}</span>
-            <button type="button" className="logout-btn" onClick={handleLogout}>Logout</button>
-          </div>
-        </nav>
-
-        <main className="main-content">
-          <section className="add-password">
-            <h2>Add New Password</h2>
-            <form className="inputs-form" onSubmit={handleSubmit(onSubmit)}>
-              <div className="form-group">
-                <div className="field">
-                  <label htmlFor="add-service">Service</label>
-                  <input
-                    id="add-service"
-                    {...register("service")}
-                    placeholder="e.g. GitHub"
-                    disabled={saving}
-                    aria-invalid={Boolean(errors.service)}
-                    aria-describedby={errors.service ? "add-service-error" : undefined}
-                  />
-                  <p className="error" id="add-service-error">{errors.service?.message}</p>
-                </div>
-                <div className="field">
-                  <label htmlFor="add-email">Email</label>
-                  <input
-                    id="add-email"
-                    {...register("email")}
-                    type="email"
-                    placeholder="Email"
-                    disabled={saving}
-                    aria-invalid={Boolean(errors.email)}
-                    aria-describedby={errors.email ? "add-email-error" : undefined}
-                  />
-                  <p className="error" id="add-email-error">{errors.email?.message}</p>
-                </div>
-                <div className="field">
-                  <label htmlFor="add-password">Password</label>
-                  <div className="password-input">
-                    <input
-                      id="add-password"
-                      {...register("password")}
-                      type={showInput ? "text" : "password"}
-                      placeholder="Password"
-                      disabled={saving}
-                      aria-invalid={Boolean(errors.password)}
-                      aria-describedby={errors.password ? "add-password-error" : undefined}
-                    />
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={showInput ? "Hide password" : "Show password"}
-                      onClick={() => setShowInput(!showInput)}
-                    >
-                      {showInput ? <GoEye /> : <GoEyeClosed />}
-                    </button>
-                  </div>
-                  <button type="button" className="gen-link" onClick={handleGenerate} disabled={saving}>
-                    Generate strong password
-                  </button>
-                  {!errors.password?.message && addPasswordValue && (
-                    <div className="strength">
-                      <div className="strength-bars">
-                        {[1, 2, 3, 4].map((i) => (
-                          <span key={i} className={`bar ${i <= addScore ? `filled-${addScore}` : ""}`} />
-                        ))}
-                      </div>
-                      <span className={`strength-label s-${addScore}`}>
-                        {strengthLabel(addScore)} password
-                      </span>
-                    </div>
-                  )}
-                  <p className="error" id="add-password-error">{errors.password?.message}</p>
-                </div>
+    <div className="dashboard-container">
+      <main className="main-content">
+        <section className="add-password">
+          <h2>Add New Password</h2>
+          <form className="inputs-form" onSubmit={handleSubmit(onSubmit)}>
+            <div className="fields-row">
+              <div className="field">
+                <label htmlFor="add-service">Service</label>
+                <input
+                  id="add-service"
+                  ref={serviceInputRef}
+                  {...register("service")}
+                  placeholder="e.g. GitHub"
+                  disabled={saving}
+                  aria-invalid={Boolean(errors.service)}
+                  aria-describedby={errors.service ? "add-service-error" : undefined}
+                />
+                <p className="error" id="add-service-error">{errors.service?.message}</p>
               </div>
-              <button className="save-btn" type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save Password"}
-              </button>
-            </form>
-          </section>
+              <div className="field">
+                <label htmlFor="add-email">Email</label>
+                <input
+                  id="add-email"
+                  {...register("email")}
+                  type="email"
+                  placeholder="Email"
+                  disabled={saving}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "add-email-error" : undefined}
+                />
+                <p className="error" id="add-email-error">{errors.email?.message}</p>
+              </div>
+              <div className="field">
+                <label htmlFor="add-password">Password</label>
+                <div className="password-input with-gen">
+                  <input
+                    id="add-password"
+                    {...register("password")}
+                    type={showInput ? "text" : "password"}
+                    placeholder="Password"
+                    disabled={saving}
+                    aria-invalid={Boolean(errors.password)}
+                    aria-describedby={errors.password ? "add-password-error" : undefined}
+                  />
+                  <button
+                    type="button"
+                    className="icon-btn gen-btn"
+                    aria-label="Generate strong password"
+                    title="Generate strong password"
+                    onClick={handleGenerate}
+                    disabled={saving}
+                  >
+                    <GoKey />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={showInput ? "Hide password" : "Show password"}
+                    onClick={() => setShowInput(!showInput)}
+                  >
+                    {showInput ? <GoEye /> : <GoEyeClosed />}
+                  </button>
+                </div>
+                {!errors.password?.message && addPasswordValue && (
+                  <div className="strength">
+                    <div className="strength-bars">
+                      {[1, 2, 3, 4].map((i) => (
+                        <span key={i} className={`bar ${i <= addScore ? `filled-${addScore}` : ""}`} />
+                      ))}
+                    </div>
+                    <span className={`strength-label s-${addScore}`}>
+                      {strengthLabel(addScore)} password
+                    </span>
+                  </div>
+                )}
+                <p className="error" id="add-password-error">{errors.password?.message}</p>
+              </div>
+              <div className="save-cell">
+                <button className="save-btn" type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Password"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
 
-          <section className="password-list">
-            <div className="list-header">
-              <h2>Saved Passwords</h2>
+        <section className="password-list">
+          <div className="list-header">
+            <h2>Saved Passwords</h2>
+            <div className="search-wrap">
               <input
                 className="search-box"
                 type="search"
@@ -477,24 +511,35 @@ const Dashboard = ({ onSessionExpired }) => {
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search saved passwords"
               />
+              {search && (
+                <button
+                  type="button"
+                  className="clear-search"
+                  aria-label="Clear search"
+                  title="Clear search"
+                  onClick={() => setSearch("")}
+                >
+                  <GoX />
+                </button>
+              )}
             </div>
-            <div className="table-wrap">
-              <table className="passwords-table">
-                <thead>
-                  <tr>
-                    <th>Service</th>
-                    <th>Email</th>
-                    <th>Password</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                {renderTableBody()}
-              </table>
-            </div>
-          </section>
-        </main>
-      </div>
-    </>
+          </div>
+          <div className="table-wrap">
+            <table className="passwords-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Email</th>
+                  <th>Password</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>{renderTableBody()}</tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }
 

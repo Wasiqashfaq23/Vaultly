@@ -70,6 +70,7 @@ const Signup = ({ onSignupSuccess }) => {
       <div className="signup-container">
         <div className="signup-card">
           <h2>Sign Up</h2>
+          <p className="signup-sub">Create an account to start saving passwords.</p>
           <form className="signup-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="form-group">
               <label htmlFor="signup-username">Username</label>
