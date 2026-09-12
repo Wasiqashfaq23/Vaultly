@@ -84,7 +84,9 @@ const VerifyEmail = ({ token, setCurrPage }) => {
             <h2>Link invalid or expired</h2>
             <p>{message}</p>
             <div className="resend-form">
+              <label className="visually-hidden" htmlFor="verify-resend-email">Email</label>
               <input
+                id="verify-resend-email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
