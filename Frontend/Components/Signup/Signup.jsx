@@ -77,6 +77,7 @@ const Signup = ({ onSignupSuccess }) => {
               <input
                 id="signup-username"
                 {...register("userName")}
+                type="text"
                 placeholder="Username"
                 autoComplete="username"
                 disabled={loading}

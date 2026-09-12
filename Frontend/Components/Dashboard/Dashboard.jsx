@@ -425,6 +425,7 @@ const Dashboard = ({ onSessionExpired }) => {
                   id="add-service"
                   ref={serviceInputRef}
                   {...register("service")}
+                  type="text"
                   placeholder="e.g. GitHub"
                   disabled={saving}
                   aria-invalid={Boolean(errors.service)}
