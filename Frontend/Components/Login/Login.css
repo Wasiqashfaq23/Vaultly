@@ -34,6 +34,13 @@
   flex-direction: column;
 }
 
+.login-form label {
+  display: block;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
 .login-form input {
   width: 100%;
   padding: 10px;
@@ -105,6 +112,27 @@
 .form-error {
   margin-top: 12px;
   text-align: center;
+}
+
+.form-success {
+  margin-top: 12px;
+  text-align: center;
+  color: #2ecc71;
+  font-size: 0.9rem;
+}
+
+.login-links {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
 }
 
 .resend-btn {

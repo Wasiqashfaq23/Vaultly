@@ -4,6 +4,8 @@ import Dashboard from '../Components/Dashboard/Dashboard'
 import Navbar from '../Components/Navbar'
 import VerifyEmail from '../Components/VerifyEmail/VerifyEmail'
 import VerifyPrompt from '../Components/VerifyPrompt/VerifyPrompt'
+import ForgotPassword from '../Components/ForgotPassword/ForgotPassword'
+import ResetPassword from '../Components/ResetPassword/ResetPassword'
 import ToastHost from './ToastHost'
 import { useEffect, useState } from 'react'
 import { apiFetch } from './api'
@@ -16,21 +18,26 @@ const PAGE = {
   DASHBOARD: "dashboard",
   VERIFY_EMAIL: "verify-email",
   VERIFY_PROMPT: "verify-prompt",
+  FORGOT: "forgot",
+  RESET_PASSWORD: "reset-password",
 }
 
-function readVerifyToken() {
-  return new URLSearchParams(window.location.search).get("verify-email") || ""
+function readQueryToken(name) {
+  return new URLSearchParams(window.location.search).get(name) || ""
 }
 
 const App = () => {
-  const [verifyToken] = useState(readVerifyToken)
-  const [currPage, setCurrPage] = useState(() =>
-    verifyToken ? PAGE.VERIFY_EMAIL : PAGE.LOADING
-  )
+  const [verifyToken] = useState(() => readQueryToken("verify-email"))
+  const [resetToken] = useState(() => readQueryToken("reset-password"))
+  const [currPage, setCurrPage] = useState(() => {
+    if (verifyToken) return PAGE.VERIFY_EMAIL
+    if (resetToken) return PAGE.RESET_PASSWORD
+    return PAGE.LOADING
+  })
   const [signupEmail, setSignupEmail] = useState("")
 
   useEffect(() => {
-    if (verifyToken) {
+    if (verifyToken || resetToken) {
       window.history.replaceState({}, "", window.location.pathname)
       return
     }
@@ -45,7 +52,7 @@ const App = () => {
     return () => {
       active = false
     }
-  }, [verifyToken])
+  }, [verifyToken, resetToken])
 
   const handleSignupSuccess = (email) => {
     setSignupEmail(email)
@@ -66,11 +73,11 @@ const App = () => {
     )
   }
 
+  const showNav = currPage !== PAGE.DASHBOARD
+
   return (
     <>
-      {(currPage === PAGE.LOGIN || currPage === PAGE.SIGNUP) && (
-        <Navbar setCurrPage={setCurrPage} />
-      )}
+      {showNav && <Navbar setCurrPage={setCurrPage} />}
       {currPage === PAGE.LOGIN && <Login setCurrPage={setCurrPage} />}
       {currPage === PAGE.SIGNUP && <Signup onSignupSuccess={handleSignupSuccess} />}
       {currPage === PAGE.DASHBOARD && <Dashboard onSessionExpired={handleSessionExpired} />}
@@ -79,6 +86,10 @@ const App = () => {
       )}
       {currPage === PAGE.VERIFY_PROMPT && (
         <VerifyPrompt email={signupEmail} setCurrPage={setCurrPage} />
+      )}
+      {currPage === PAGE.FORGOT && <ForgotPassword setCurrPage={setCurrPage} />}
+      {currPage === PAGE.RESET_PASSWORD && (
+        <ResetPassword token={resetToken} setCurrPage={setCurrPage} />
       )}
       <ToastHost />
     </>
