@@ -5,6 +5,7 @@ import * as yup from "yup";
 import { GoEye, GoEyeClosed } from "react-icons/go";
 import "./Signup.css";
 import { apiFetch } from "../../src/api";
+import { passwordScore, strengthLabel } from "../../src/password";
 
 const schema = yup
   .object({
@@ -16,26 +17,17 @@ const schema = yup
       .max(60, "Username must be at most 60 characters"),
     email: yup.string().trim().required("Email is required").email("Enter a valid email"),
     password: yup.string().required("Password is required").min(8, "Password must be at least 8 characters"),
+    confirmPassword: yup
+      .string()
+      .required("Please confirm your password")
+      .oneOf([yup.ref("password")], "Passwords do not match"),
   })
   .required();
 
-const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
-
-function passwordScore(pwd) {
-  if (!pwd) return 0;
-  let score = 0;
-  if (pwd.length >= 8) score += 1;
-  if (pwd.length >= 12) score += 1;
-  if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1;
-  if (/\d/.test(pwd)) score += 1;
-  if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
-  return Math.min(4, score);
-}
-
 const Signup = ({ onSignupSuccess }) => {
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const {
     register,
@@ -51,18 +43,17 @@ const Signup = ({ onSignupSuccess }) => {
   const onSubmit = async (data) => {
     setLoading(true)
     setError("")
-    setSuccess("")
+    const { confirmPassword: _confirmPassword, ...payload } = data;
     try {
       const { res, data: result } = await apiFetch("/signup", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
       if (res.ok) {
         reset();
-        setSuccess(result?.message || "Account created! Check your email to verify.");
         if (typeof onSignupSuccess === "function") {
-          onSignupSuccess(data.email);
+          onSignupSuccess(payload.email);
         }
       } else {
         setError(result?.message || "Signup failed");
@@ -81,34 +72,46 @@ const Signup = ({ onSignupSuccess }) => {
           <h2>Sign Up</h2>
           <form className="signup-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="form-group">
+              <label htmlFor="signup-username">Username</label>
               <input
+                id="signup-username"
                 {...register("userName")}
                 placeholder="Username"
                 autoComplete="username"
                 disabled={loading}
+                aria-invalid={Boolean(errors.userName)}
+                aria-describedby={errors.userName ? "signup-username-error" : undefined}
               />
-              <p className="error">{errors.userName?.message}</p>
+              <p className="error" id="signup-username-error">{errors.userName?.message}</p>
             </div>
 
             <div className="form-group">
+              <label htmlFor="signup-email">Email</label>
               <input
+                id="signup-email"
                 {...register("email")}
                 type="email"
                 placeholder="Email"
                 autoComplete="email"
                 disabled={loading}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "signup-email-error" : undefined}
               />
-              <p className="error">{errors.email?.message}</p>
+              <p className="error" id="signup-email-error">{errors.email?.message}</p>
             </div>
 
             <div className="form-group">
+              <label htmlFor="signup-password">Password</label>
               <div className="password-input">
                 <input
+                  id="signup-password"
                   {...register("password")}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password"
+                  placeholder="At least 8 characters"
                   autoComplete="new-password"
                   disabled={loading}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? "signup-password-error" : undefined}
                 />
                 <button
                   type="button"
@@ -127,22 +130,42 @@ const Signup = ({ onSignupSuccess }) => {
                     ))}
                   </div>
                   <span className={`strength-label s-${score}`}>
-                    {STRENGTH_LABELS[score]} password
+                    {strengthLabel(score)} password
                   </span>
                 </div>
               )}
-              <p className="error">{errors.password?.message}</p>
+              <p className="error" id="signup-password-error">{errors.password?.message}</p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="signup-confirm">Confirm password</label>
+              <div className="password-input">
+                <input
+                  id="signup-confirm"
+                  {...register("confirmPassword")}
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Repeat password"
+                  autoComplete="new-password"
+                  disabled={loading}
+                  aria-invalid={Boolean(errors.confirmPassword)}
+                  aria-describedby={errors.confirmPassword ? "signup-confirm-error" : undefined}
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                  onClick={() => setShowConfirm(!showConfirm)}
+                >
+                  {showConfirm ? <GoEye /> : <GoEyeClosed />}
+                </button>
+              </div>
+              <p className="error" id="signup-confirm-error">{errors.confirmPassword?.message}</p>
             </div>
 
             <button type="submit" className="signup-btn" disabled={loading}>
               {loading ? "Creating account…" : "Sign Up"}
             </button>
           </form>
-          {success && (
-            <p className="success form-success" role="status">
-              {success}
-            </p>
-          )}
           {error && (
             <p className="error form-error" role="alert">
               {error}

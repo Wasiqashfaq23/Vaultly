@@ -1,11 +1,14 @@
 import "./Dashboard.css"
 import { GoEye, GoEyeClosed, GoCopy, GoCheck } from "react-icons/go"
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { apiFetch } from '../../src/api'
 import { toast } from '../../src/toast'
+import { generatePassword, passwordScore, strengthLabel } from '../../src/password'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const schema = yup.object({
   service: yup.string().trim().required("Service is required"),
@@ -14,6 +17,7 @@ const schema = yup.object({
 }).required()
 
 const REVEAL_MS = 10000
+const CLIPBOARD_CLEAR_MS = 30000
 
 const Dashboard = ({ onSessionExpired }) => {
   const [editId, setEditId] = useState(null)
@@ -29,12 +33,18 @@ const Dashboard = ({ onSessionExpired }) => {
   const [saving, setSaving] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const clipboardClearRef = useRef(null)
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
+
+  const addPasswordValue = watch("password") || ""
+  const addScore = passwordScore(addPasswordValue)
 
   const sessionLost = (res) => {
     if (res.status !== 401) return false
@@ -76,6 +86,12 @@ const Dashboard = ({ onSessionExpired }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (clipboardClearRef.current) clearTimeout(clipboardClearRef.current)
+    }
+  }, [])
+
   const toggleVisibility = (id) => {
     setVisiblePasswords((prev) => {
       const next = { ...prev, [id]: !prev[id] }
@@ -107,6 +123,7 @@ const Dashboard = ({ onSessionExpired }) => {
       if (sessionLost(res)) return
       if (res.ok) {
         reset()
+        setShowInput(false)
         toast(result?.message || "Password saved")
         fetchPasswords()
       } else {
@@ -127,9 +144,26 @@ const Dashboard = ({ onSessionExpired }) => {
       setCopiedId(id)
       toast("Password copied to clipboard")
       setTimeout(() => setCopiedId(null), 2000)
+      if (clipboardClearRef.current) clearTimeout(clipboardClearRef.current)
+      clipboardClearRef.current = setTimeout(() => {
+        navigator.clipboard.writeText("").catch(() => {})
+      }, CLIPBOARD_CLEAR_MS)
     } catch {
       toast("Could not copy password", "error")
     }
+  }
+
+  const handleGenerate = () => {
+    const gen = generatePassword()
+    setValue("password", gen, { shouldValidate: true })
+    setShowInput(true)
+    toast("Strong password generated")
+  }
+
+  const handleGenerateEdit = () => {
+    setEditData((prev) => ({ ...prev, password: generatePassword() }))
+    setShowEditInput(true)
+    toast("Strong password generated")
   }
 
   const handleEdit = (p) => {
@@ -138,9 +172,21 @@ const Dashboard = ({ onSessionExpired }) => {
     setEditData({ service: p.service, email: p.email, password: p.password })
   }
 
+  const editError = editId
+    ? !editData.service?.trim()
+      ? "Service is required"
+      : !editData.email?.trim()
+        ? "Email is required"
+        : !EMAIL_REGEX.test(editData.email.trim())
+          ? "Enter a valid email"
+          : !editData.password
+            ? "Password is required"
+            : ""
+    : ""
+
   const handleSaveEdit = async () => {
-    if (!editData.service?.trim() || !editData.email?.trim() || !editData.password?.trim()) {
-      toast("All fields are required", "error")
+    if (editError) {
+      toast(editError, "error")
       return
     }
     setEditSaving(true)
@@ -222,98 +268,115 @@ const Dashboard = ({ onSessionExpired }) => {
       )
     }
     return filtered.map((p) => (
-      <tr key={p._id}>
-        {editId === p._id ? (
-          <>
-            <td>
-              <input
-                type="text"
-                value={editData.service}
-                onChange={(e) => setEditData({ ...editData, service: e.target.value })}
-                placeholder="Service"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                value={editData.email}
-                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                placeholder="Email / Username"
-              />
-            </td>
-            <td>
-              <div className="password-input">
+      <tbody key={p._id}>
+        <tr className={editId === p._id ? "editing-row" : ""}>
+          {editId === p._id ? (
+            <>
+              <td data-label="Service">
                 <input
-                  type={showEditInput ? "text" : "password"}
-                  value={editData.password}
-                  onChange={(e) => setEditData({ ...editData, password: e.target.value })}
-                  placeholder="Password"
+                  type="text"
+                  aria-label="Service"
+                  aria-invalid={Boolean(editError && !editData.service?.trim())}
+                  value={editData.service}
+                  onChange={(e) => setEditData({ ...editData, service: e.target.value })}
+                  placeholder="Service"
                 />
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label={showEditInput ? "Hide password" : "Show password"}
-                  onClick={() => setShowEditInput(!showEditInput)}
-                >
-                  {showEditInput ? <GoEye /> : <GoEyeClosed />}
+              </td>
+              <td data-label="Email">
+                <input
+                  type="text"
+                  aria-label="Email"
+                  aria-invalid={Boolean(editError && (!editData.email?.trim() || !EMAIL_REGEX.test(editData.email.trim())))}
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  placeholder="Email"
+                />
+              </td>
+              <td data-label="Password">
+                <div className="password-input">
+                  <input
+                    type={showEditInput ? "text" : "password"}
+                    aria-label="Password"
+                    aria-invalid={Boolean(editError && !editData.password)}
+                    value={editData.password}
+                    onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+                    placeholder="Password"
+                  />
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={showEditInput ? "Hide password" : "Show password"}
+                    onClick={() => setShowEditInput(!showEditInput)}
+                  >
+                    {showEditInput ? <GoEye /> : <GoEyeClosed />}
+                  </button>
+                </div>
+                <button type="button" className="gen-link" onClick={handleGenerateEdit}>
+                  Generate
                 </button>
-              </div>
-            </td>
-            <td className="actions">
-              <button type="button" className="save-changes-btn" disabled={editSaving} onClick={handleSaveEdit}>
-                {editSaving ? "Saving…" : "Save"}
-              </button>
-              <button
-                type="button"
-                className="cancel-btn"
-                onClick={() => {
-                  setEditId(null)
-                  setEditData({})
-                }}
-              >
-                Exit
-              </button>
-            </td>
-          </>
-        ) : (
-          <>
-            <td>{p.service}</td>
-            <td>{p.email}</td>
-            <td>
-              <div className="password-cell">
-                <span className="password-dots">{visiblePasswords[p._id] ? p.password : "••••••••"}</span>
-                <button
-                  type="button"
-                  className="icon-btn static"
-                  aria-label={visiblePasswords[p._id] ? "Hide password" : "Show password"}
-                  onClick={() => toggleVisibility(p._id)}
-                >
-                  {visiblePasswords[p._id] ? <GoEye /> : <GoEyeClosed />}
+              </td>
+              <td className="actions" data-label="Actions">
+                <button type="button" className="save-changes-btn" disabled={editSaving || Boolean(editError)} onClick={handleSaveEdit}>
+                  {editSaving ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
-                  className="icon-btn static"
-                  aria-label="Copy password"
-                  onClick={() => handleCopy(p._id)}
+                  className="cancel-btn"
+                  aria-label="Cancel editing"
+                  onClick={() => {
+                    setEditId(null)
+                    setEditData({})
+                  }}
                 >
-                  {copiedId === p._id ? <GoCheck /> : <GoCopy />}
+                  Exit
                 </button>
-              </div>
-            </td>
-            <td className="actions">
-              <button type="button" className="edit-btn" onClick={() => handleEdit(p)}>Edit</button>
-              <button
-                type="button"
-                className="delete-btn"
-                disabled={deletingId === p._id}
-                onClick={() => handleDelete(p._id)}
-              >
-                {deletingId === p._id ? "Deleting…" : "Delete"}
-              </button>
-            </td>
-          </>
+              </td>
+            </>
+          ) : (
+            <>
+              <td data-label="Service">{p.service}</td>
+              <td data-label="Email">{p.email}</td>
+              <td data-label="Password">
+                <div className="password-cell">
+                  <span className="password-dots">{visiblePasswords[p._id] ? p.password : "••••••••"}</span>
+                  <button
+                    type="button"
+                    className="icon-btn static"
+                    aria-label={visiblePasswords[p._id] ? "Hide password" : "Show password"}
+                    onClick={() => toggleVisibility(p._id)}
+                  >
+                    {visiblePasswords[p._id] ? <GoEye /> : <GoEyeClosed />}
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn static"
+                    aria-label="Copy password"
+                    onClick={() => handleCopy(p._id)}
+                  >
+                    {copiedId === p._id ? <GoCheck /> : <GoCopy />}
+                  </button>
+                </div>
+              </td>
+              <td className="actions" data-label="Actions">
+                <button type="button" className="edit-btn" onClick={() => handleEdit(p)}>Edit</button>
+                <button
+                  type="button"
+                  className="delete-btn"
+                  disabled={deletingId === p._id}
+                  onClick={() => handleDelete(p._id)}
+                >
+                  {deletingId === p._id ? "Deleting…" : "Delete"}
+                </button>
+              </td>
+            </>
+          )}
+        </tr>
+        {editId === p._id && editError && (
+          <tr>
+            <td colSpan="4" className="edit-error">{editError}</td>
+          </tr>
         )}
-      </tr>
+      </tbody>
     ))
   }
 
@@ -334,20 +397,41 @@ const Dashboard = ({ onSessionExpired }) => {
             <form className="inputs-form" onSubmit={handleSubmit(onSubmit)}>
               <div className="form-group">
                 <div className="field">
-                  <input {...register("service")} placeholder="Service" disabled={saving} />
-                  <p className="error">{errors.service?.message}</p>
+                  <label htmlFor="add-service">Service</label>
+                  <input
+                    id="add-service"
+                    {...register("service")}
+                    placeholder="e.g. GitHub"
+                    disabled={saving}
+                    aria-invalid={Boolean(errors.service)}
+                    aria-describedby={errors.service ? "add-service-error" : undefined}
+                  />
+                  <p className="error" id="add-service-error">{errors.service?.message}</p>
                 </div>
                 <div className="field">
-                  <input {...register("email")} type="email" placeholder="Email / Username" disabled={saving} />
-                  <p className="error">{errors.email?.message}</p>
+                  <label htmlFor="add-email">Email</label>
+                  <input
+                    id="add-email"
+                    {...register("email")}
+                    type="email"
+                    placeholder="Email"
+                    disabled={saving}
+                    aria-invalid={Boolean(errors.email)}
+                    aria-describedby={errors.email ? "add-email-error" : undefined}
+                  />
+                  <p className="error" id="add-email-error">{errors.email?.message}</p>
                 </div>
                 <div className="field">
+                  <label htmlFor="add-password">Password</label>
                   <div className="password-input">
                     <input
+                      id="add-password"
                       {...register("password")}
                       type={showInput ? "text" : "password"}
                       placeholder="Password"
                       disabled={saving}
+                      aria-invalid={Boolean(errors.password)}
+                      aria-describedby={errors.password ? "add-password-error" : undefined}
                     />
                     <button
                       type="button"
@@ -358,7 +442,22 @@ const Dashboard = ({ onSessionExpired }) => {
                       {showInput ? <GoEye /> : <GoEyeClosed />}
                     </button>
                   </div>
-                  <p className="error">{errors.password?.message}</p>
+                  <button type="button" className="gen-link" onClick={handleGenerate} disabled={saving}>
+                    Generate strong password
+                  </button>
+                  {!errors.password?.message && addPasswordValue && (
+                    <div className="strength">
+                      <div className="strength-bars">
+                        {[1, 2, 3, 4].map((i) => (
+                          <span key={i} className={`bar ${i <= addScore ? `filled-${addScore}` : ""}`} />
+                        ))}
+                      </div>
+                      <span className={`strength-label s-${addScore}`}>
+                        {strengthLabel(addScore)} password
+                      </span>
+                    </div>
+                  )}
+                  <p className="error" id="add-password-error">{errors.password?.message}</p>
                 </div>
               </div>
               <button className="save-btn" type="submit" disabled={saving}>
@@ -380,16 +479,16 @@ const Dashboard = ({ onSessionExpired }) => {
               />
             </div>
             <div className="table-wrap">
-              <table>
+              <table className="passwords-table">
                 <thead>
                   <tr>
                     <th>Service</th>
-                    <th>Email/Username</th>
+                    <th>Email</th>
                     <th>Password</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody>{renderTableBody()}</tbody>
+                {renderTableBody()}
               </table>
             </div>
           </section>

@@ -81,6 +81,13 @@
   flex: 1;
 }
 
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
 .form-group input {
   width: 100%;
   padding: 10px;
@@ -125,6 +132,81 @@
   color: #e74c3c;
   font-size: 0.85rem;
   margin-top: 5px;
+}
+
+.gen-link {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.gen-link:hover:not(:disabled) {
+  color: #2980b9;
+}
+
+.strength {
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.strength-bars .bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e0e0e0;
+}
+
+.strength-bars .bar.filled-1 {
+  background-color: #e74c3c;
+}
+
+.strength-bars .bar.filled-2 {
+  background-color: #e67e22;
+}
+
+.strength-bars .bar.filled-3 {
+  background-color: #f1c40f;
+}
+
+.strength-bars .bar.filled-4 {
+  background-color: #2ecc71;
+}
+
+.strength-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.strength-label.s-1 {
+  color: #e74c3c;
+}
+
+.strength-label.s-2 {
+  color: #e67e22;
+}
+
+.strength-label.s-3 {
+  color: #b7950b;
+}
+
+.strength-label.s-4 {
+  color: #27ae60;
+}
+
+.edit-error {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  padding: 4px 10px 10px;
 }
 
 .save-btn {
@@ -302,10 +384,6 @@ button:disabled {
     padding: 15px 20px;
   }
 
-  .navbar .user-info .welcome {
-    display: none;
-  }
-
   .form-group {
     flex-direction: column;
   }
@@ -322,5 +400,70 @@ button:disabled {
 
   .search-box {
     width: 100%;
+  }
+
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .passwords-table,
+  .passwords-table thead,
+  .passwords-table tbody,
+  .passwords-table tr,
+  .passwords-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .passwords-table {
+    min-width: 0;
+  }
+
+  .passwords-table thead {
+    display: none;
+  }
+
+  .passwords-table tbody {
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .passwords-table tbody td {
+    position: relative;
+    padding: 10px 12px 10px 45%;
+    border-top: none;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
+  }
+
+  .passwords-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .passwords-table tbody td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    font-weight: bold;
+    color: #555;
+    font-size: 0.9rem;
+  }
+
+  .passwords-table tbody td.actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .passwords-table tbody td .password-cell {
+    justify-content: flex-end;
+  }
+
+  .passwords-table tbody td input {
+    max-width: none;
   }
 }
