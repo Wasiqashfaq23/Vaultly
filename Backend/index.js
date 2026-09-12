@@ -9,6 +9,7 @@ const port = process.env.PORT || 8001
 const { connectToMongo } = require("./connect")
 const userRouter = require("./Routes/User")
 const passRouter = require("./Routes/savedPasswords")
+const { testSmtp, isMailConfigured } = require("./Services/Email")
 
 const FALLBACK_ORIGINS = ["http://localhost:5174", "http://localhost:5173"]
 
@@ -86,6 +87,18 @@ app.use("/password", passRouter)
 app.use(errorHandler)
 
 connectToMongo(process.env.MONGO_URI).then(() => { console.log("Mongo connected") })
+
+if (isMailConfigured()) {
+  testSmtp().then((ok) => {
+    console.log(
+      ok
+        ? "[Vaultly] SMTP self-test: OK (local delivery)"
+        : "[Vaultly] SMTP self-test: FAILED (email will fall back to Vercel mail relay)"
+    )
+  })
+} else {
+  console.log("[Vaultly] Email service not configured")
+}
 
 app.listen(port, () => {
   console.log("Listening at port", port)

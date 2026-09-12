@@ -5,6 +5,10 @@ function isSmtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
 }
 
+function isMailConfigured() {
+  return isSmtpConfigured() || Boolean(process.env.MAIL_RELAY_URL && process.env.MAIL_RELAY_SECRET)
+}
+
 function buildTransport() {
   const port = Number(process.env.SMTP_PORT) || 587
   return nodemailer.createTransport({
@@ -14,6 +18,7 @@ function buildTransport() {
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 15000,
+    logger: true,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -38,16 +43,53 @@ function template(title, bodyHtml, link, linkLabel) {
   `
 }
 
+async function relayMail({ to, subject, text, html }) {
+  const url = process.env.MAIL_RELAY_URL
+  const secret = process.env.MAIL_RELAY_SECRET
+  if (!url || !secret) {
+    return { delivered: false, relayed: false }
+  }
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-relay-secret": secret },
+      body: JSON.stringify({ from: emailFrom(), to, subject, text, html }),
+      signal: AbortSignal.timeout(20000),
+    })
+    let data = {}
+    try {
+      data = await res.json()
+    } catch (_e) {
+      // non-JSON response
+    }
+    if (res.ok && data.ok) {
+      console.log("[Vaultly] email sent via Vercel mail relay")
+      return { delivered: true, relayed: true }
+    }
+    console.log("[Vaultly] mail relay failed:", res.status, data.error || "")
+    return { delivered: false, relayed: true }
+  } catch (err) {
+    console.log("[Vaultly] mail relay error:", err.message || err)
+    return { delivered: false, relayed: true }
+  }
+}
+
 async function sendMail({ to, subject, text, html }) {
-  if (!isSmtpConfigured()) return false
-  await buildTransport().sendMail({
-    from: emailFrom(),
-    to,
-    subject,
-    text,
-    html,
-  })
-  return true
+  if (!isSmtpConfigured()) return { delivered: false, relayed: false }
+  try {
+    await buildTransport().sendMail({
+      from: emailFrom(),
+      to,
+      subject,
+      text,
+      html,
+    })
+    console.log("[Vaultly] email sent via SMTP")
+    return { delivered: true, relayed: false }
+  } catch (err) {
+    console.log("[Vaultly] SMTP delivery failed, trying Vercel mail relay:", err.message || err)
+    return relayMail({ to, subject, text, html })
+  }
 }
 
 async function sendVerificationEmail(recipient, token) {
@@ -55,10 +97,10 @@ async function sendVerificationEmail(recipient, token) {
 
   if (!isSmtpConfigured()) {
     console.log("[Vaultly] SMTP not configured — dev verification link:", link)
-    return false
+    return { delivered: false, relayed: false, link }
   }
 
-  return sendMail({
+  const result = await sendMail({
     to: recipient,
     subject: "Vaultly — Verify your email",
     text: `Welcome to Vaultly!\n\nVerify your email to activate your account:\n${link}\n\nThe link expires in 24 hours.`,
@@ -69,6 +111,8 @@ async function sendVerificationEmail(recipient, token) {
       "Verify my email"
     ),
   })
+  result.link = link
+  return result
 }
 
 async function sendPasswordResetEmail(recipient, token) {
@@ -76,7 +120,7 @@ async function sendPasswordResetEmail(recipient, token) {
 
   if (!isSmtpConfigured()) {
     console.log("[Vaultly] SMTP not configured — dev reset link:", link)
-    return false
+    return { delivered: false, relayed: false }
   }
 
   return sendMail({
@@ -92,4 +136,15 @@ async function sendPasswordResetEmail(recipient, token) {
   })
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, isSmtpConfigured }
+async function testSmtp() {
+  if (!isSmtpConfigured()) return false
+  try {
+    await buildTransport().verify()
+    return true
+  } catch (err) {
+    console.log("[Vaultly] SMTP self-test failed:", err.message || err)
+    return false
+  }
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, isSmtpConfigured, isMailConfigured, testSmtp }

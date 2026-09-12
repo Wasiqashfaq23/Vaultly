@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt")
 const { User } = require("../Model/User")
 const { validateSignup, validatePassword } = require("../utils/validate")
 const { generateToken, hashToken, defaultExpiry } = require("../Services/Verification")
-const { sendVerificationEmail, sendPasswordResetEmail, isSmtpConfigured } = require("../Services/Email")
+const { sendVerificationEmail, sendPasswordResetEmail, isMailConfigured } = require("../Services/Email")
 
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -56,7 +56,7 @@ async function handleSignup(req, res) {
   if (!validation.valid) {
     return res.status(400).json({ message: validation.errors[0] })
   }
-  if (!isSmtpConfigured() && process.env.NODE_ENV === "production") {
+  if (!isMailConfigured() && process.env.NODE_ENV === "production") {
     return res.status(500).json({ message: "Email service is not configured on the server." })
   }
   const alreadyPresent = await User.findOne({ email })
@@ -73,12 +73,19 @@ async function handleSignup(req, res) {
     verificationHash: hashToken(token),
     verificationExpires: defaultExpiry(),
   })
+  let sendResult = null
   try {
-    await sendVerificationEmail(user.email, token)
+    sendResult = await sendVerificationEmail(user.email, token)
   } catch (err) {
-    console.error("[Vaultly] verification email failed:", err)
+    console.error("[Vaultly] verification email error:", err)
   }
-  return res.status(201).json({ message: "Account created! Check your inbox to verify your email." })
+  if (sendResult && sendResult.delivered) {
+    return res.status(201).json({ message: "Account created! Check your inbox to verify your email." })
+  }
+  return res.status(201).json({
+    message: "Account created! The verification email couldn't be sent — use the link below to verify your email instead.",
+    verificationLink: sendResult ? sendResult.link : undefined,
+  })
 }
 
 async function handleVerifyEmail(req, res) {

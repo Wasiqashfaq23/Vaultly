@@ -53,7 +53,7 @@ const Signup = ({ onSignupSuccess }) => {
       if (res.ok) {
         reset();
         if (typeof onSignupSuccess === "function") {
-          onSignupSuccess(payload.email);
+          onSignupSuccess(payload.email, result?.verificationLink || "");
         }
       } else {
         setError(result?.message || "Signup failed");

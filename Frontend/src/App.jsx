@@ -35,6 +35,7 @@ const App = () => {
     return PAGE.LOADING
   })
   const [signupEmail, setSignupEmail] = useState("")
+  const [signupFallbackLink, setSignupFallbackLink] = useState("")
 
   useEffect(() => {
     if (verifyToken || resetToken) {
@@ -54,8 +55,9 @@ const App = () => {
     }
   }, [verifyToken, resetToken])
 
-  const handleSignupSuccess = (email) => {
+  const handleSignupSuccess = (email, fallbackLink) => {
     setSignupEmail(email)
+    setSignupFallbackLink(fallbackLink || "")
     setCurrPage(PAGE.VERIFY_PROMPT)
   }
 
@@ -85,7 +87,7 @@ const App = () => {
         <VerifyEmail token={verifyToken} setCurrPage={setCurrPage} />
       )}
       {currPage === PAGE.VERIFY_PROMPT && (
-        <VerifyPrompt email={signupEmail} setCurrPage={setCurrPage} />
+        <VerifyPrompt email={signupEmail} fallbackLink={signupFallbackLink} setCurrPage={setCurrPage} />
       )}
       {currPage === PAGE.FORGOT && <ForgotPassword setCurrPage={setCurrPage} />}
       {currPage === PAGE.RESET_PASSWORD && (

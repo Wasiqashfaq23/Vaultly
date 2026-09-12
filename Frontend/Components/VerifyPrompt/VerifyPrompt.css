@@ -57,6 +57,27 @@
   background-color: #3498db;
 }
 
+.verify-badge.warn {
+  background-color: #e67e22;
+}
+
+.verify-fallback-link {
+  display: inline-block;
+  margin: 6px 0 4px;
+  padding: 10px 16px;
+  background-color: #f39c12;
+  color: #fff;
+  border-radius: 7px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+
+.verify-fallback-link:hover {
+  background-color: #d68910;
+}
+
 .verify-secondary-btn {
   padding: 10px;
   background-color: #ecf0f1;
