@@ -33,14 +33,18 @@ Vaultly is a full-stack password manager that lets users securely store, view, e
 ## ✨ Features
 
 - 🔑 User authentication — signup and login with bcrypt-hashed account passwords
-- 🍪 Session management with JWT stored in an HTTP-only, SameSite cookie
+- ✉️ Email verification on signup (with resend) and forgot/reset password flows
+- 🍪 Session management with JWT stored in an HTTP-only, SameSite cookie (secure against CSRF-free cross-site reads)
 - 🗄️ Save credentials — service, email, and password
+- 🎲 Built-in strong password generator with a live strength meter
 - 🔐 AES-256-GCM encryption for every vault entry before it touches the database
-- ✏️ Inline edit and delete saved passwords
-- 👁️ Toggle password visibility per entry
+- ✏️ Inline edit and delete with an inline confirmation (no `window.confirm`)
+- 👁️ Toggle password visibility per entry + one-click copy to clipboard (auto-cleared after 30s)
 - 🚪 Ownership checks on update and delete (IDOR-safe)
 - 📋 Form validation with React Hook Form + Yup (frontend) and server-side validation
 - 🛡️ Login/signup rate limiting + centralized error handling
+- 📱 Responsive layout — the table collapses into card rows on mobile
+- 🔁 Resilient email delivery — SMTP first, automatic fallback to a serverless relay (see [Deployment](#-deployment))
 
 ---
 
@@ -80,7 +84,7 @@ Vaultly/
 ├── Backend/
 │   ├── Controller/
 │   │   ├── savedPasswords.js      # Vault CRUD (encrypted, ownership-scoped)
-│   │   └── User.js                # Auth logic, sanitized user responses
+│   │   └── User.js                # Auth, email verification, password reset
 │   ├── Middleware/
 │   │   └── Auth.js                # requireAuth (401 on missing/invalid token)
 │   ├── Model/
@@ -90,7 +94,9 @@ Vaultly/
 │   │   ├── savedPasswords.js
 │   │   └── User.js
 │   ├── Services/
-│   │   └── Auth.js                # JWT sign/verify (no secrets in payload)
+│   │   ├── Auth.js                # JWT sign/verify (no secrets in payload)
+│   │   ├── Email.js               # SMTP delivery + relay fallback
+│   │   └── Verification.js        # Email-verify / password-reset tokens & links
 │   ├── utils/
 │   │   ├── crypto.js              # AES-256-GCM encrypt/decrypt
 │   │   └── validate.js            # Server-side validation
@@ -99,15 +105,27 @@ Vaultly/
 │   └── index.js                   # App setup, rate limiter, error handler
 │
 └── Frontend/
+    ├── api/
+    │   └── sendmail.js            # Vercel serverless mail relay function
     ├── Components/
     │   ├── Dashboard/
     │   ├── Login/
     │   ├── Signup/
+    │   ├── ForgotPassword/
+    │   ├── ResetPassword/
+    │   ├── VerifyEmail/
+    │   ├── VerifyPrompt/
     │   └── Navbar.jsx
     ├── src/
-    │   ├── App.jsx
+    │   ├── App.jsx                # Page router (state-based) + auth state
+    │   ├── api.js                 # fetch helper (same-origin /api by default)
+    │   ├── index.css              # Design tokens + global reset
+    │   ├── ui.css                 # Shared input/button/strength primitives
+    │   ├── password.js            # Generator + strength scoring
+    │   ├── toast.js / ToastHost   # Lightweight toasts
     │   └── main.jsx
     ├── .env.example
+    ├── vercel.json                # Same-origin /api proxy → Render
     └── index.html
 ```
 
@@ -137,13 +155,19 @@ NODE_ENV=development
 PORT=8001
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 
-# Optional locally — without SMTP, verification links print to the backend console
+# SMTP for verification/reset emails (Gmail example — use an App Password)
+# Optional locally: without SMTP, verification links print to the backend console
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 EMAIL_FROM=Vaultly <noreply@example.com>
 FRONTEND_URL=http://localhost:5173
+
+# Optional: serverless relay used as a fallback when SMTP delivery fails
+# (deployed with the frontend — see api/sendmail.js in the Frontend app)
+MAIL_RELAY_URL=http://localhost:5174/api/sendmail
+MAIL_RELAY_SECRET=change_me
 ```
 
 `VAULT_MASTER_KEY` must be 32 bytes (64 hex characters) — generate with:
@@ -168,6 +192,8 @@ npm install
 Create `Frontend/.env` (see `.env.example`):
 
 ```env
+# Optional — defaults to the same-origin /api path (used by the Vercel proxy).
+# Set it only for local development:
 VITE_API_URL=http://localhost:8001
 ```
 
@@ -189,6 +215,8 @@ Open `http://localhost:5173` — sign up, log in, and save your first entry.
 | POST | `/login` | Login and receive session cookie | ❌ | 200 | 400, 401, 403, 429 |
 | GET | `/verify-email?token=…` | Verify the email from the emailed link | ❌ | 200 | 400 |
 | POST | `/resend-verification` | Resend the verification email | ❌ | 200 | 400 |
+| POST | `/forgot-password` | Send a password-reset link by email | ❌ | 200 | 400 |
+| POST | `/reset-password?token=…` | Set a new password with the emailed token | ❌ | 200 | 400 |
 | POST | `/logout` | Clear session cookie | ❌ | 200 | — |
 | GET | `/me` | Get the current user (sanitized) | ✅ | 200 | 401 |
 | GET | `/verify-cookie` | Validate the session cookie | ✅ | 200 | 401 |
@@ -203,20 +231,47 @@ All responses are JSON. Errors use `{ "message": "..." }`.
 
 ## ☁️ Deployment
 
-Vaultly is deployed on **Render** (backend) and **Vercel** (frontend).
+Vaultly is deployed on **Render** (backend) and **Vercel** (frontend). The frontend serves API calls and the mail relay through the **same origin**, so auth cookies (`SameSite=Lax`) work without loosening their security settings.
 
-For the hosted backend, set the same environment variables in Render's dashboard:
+### How the pieces fit together
 
 ```
-MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production, CORS_ORIGINS,
-SMTP_HOST, SMTP_PORT=587, SMTP_USER, SMTP_PASS, EMAIL_FROM, FRONTEND_URL
+Browser ──> Vercel (frontend, https://vaultly.vercel.app)
+              ├── /api/sendmail ──> Gmail SMTP        (serverless mail relay)
+              └── /api/* ────────> Render backend     (same-origin proxy)
+                                     └── SMTP first, then relay fallback
 ```
 
-Email verification requires a working SMTP account (Gmail works with an **App Password** — generate it at https://myaccount.google.com/apppasswords; never use your real Gmail password). Set `FRONTEND_URL` to the Vercel frontend URL so emailed links point at the deployed app. Login is blocked until the email is verified (403 + an inline "resend" option).
+- `Frontend/vercel.json` rewrites `/api/(.*)` to the Render backend. Because the browser only ever talks to the frontend origin, the login cookie is sent normally and `CORS_ORIGINS` matters only for local/full-domain access.
+- Emails are sent by the backend via SMTP; if that host is unreachable (e.g. Render restricts outbound SMTP), the backend automatically falls back to `api/sendmail.js` on Vercel, which sends through Gmail. If delivery still fails, the signup response carries a one-time `verificationLink` the UI shows on the "verify your email" screen. Password-reset links are never shown on-screen.
 
-On Vercel, set `VITE_API_URL` to the Render backend URL and enable automatic deployment for the `Frontend/` root directory. Set `CORS_ORIGINS` (comma-separated) on Render to your production frontend URLs, e.g. `https://vaultly.vercel.app,http://localhost:5173` — cookie-based auth requires the backend to allow the frontend origin with credentials.
+### Render (backend)
 
-> 🚨 Rotate `JWT_SECRET` and `VAULT_MASTER_KEY` if the app was ever public with known credentials.
+Set these in Render's dashboard (Node build, start command `npm start`):
+
+```
+MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production, PORT=8001,
+CORS_ORIGINS=https://vaultly.vercel.app,
+SMTP_HOST=smtp.gmail.com, SMTP_PORT=465, SMTP_USER, SMTP_PASS, EMAIL_FROM,
+FRONTEND_URL=https://vaultly.vercel.app,
+MAIL_RELAY_URL=https://vaultly.vercel.app/api/sendmail, MAIL_RELAY_SECRET
+```
+
+Gmail works with an **App Password** — generate one at https://myaccount.google.com/apppasswords; never use your real Gmail password. Set `FRONTEND_URL` to the Vercel frontend URL so emailed links point at the deployed app. `MAIL_RELAY_SECRET` must match Vercel's `RELAY_SECRET`.
+
+### Vercel (frontend)
+
+Create the project with root directory **`Frontend/`** and framework preset **Vite**. Enable the `vercel.json` proxy automatically (commit it — no extra config). Remove/never set `VITE_API_URL` so the app uses the same-origin `/api` path.
+
+Set these environment variables for the serverless relay function:
+
+```
+GMAIL_USER=<your gmail address>
+GMAIL_PASSWORD=<same app password as SMTP_PASS>
+RELAY_SECRET=<long random string — must match Render's MAIL_RELAY_SECRET>
+```
+
+> 🚨 Rotate `JWT_SECRET`, `VAULT_MASTER_KEY`, and both relay secrets if the app was ever public with known credentials.
 
 ---
 
