@@ -11,6 +11,9 @@ function buildTransport() {
     host: process.env.SMTP_HOST,
     port,
     secure: port === 465,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,

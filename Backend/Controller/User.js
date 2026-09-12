@@ -75,9 +75,8 @@ async function handleSignup(req, res) {
   })
   try {
     await sendVerificationEmail(user.email, token)
-  } catch {
-    await User.deleteOne({ _id: user._id })
-    return res.status(500).json({ message: "Could not send the verification email. Please try again." })
+  } catch (err) {
+    console.error("[Vaultly] verification email failed:", err)
   }
   return res.status(201).json({ message: "Account created! Check your inbox to verify your email." })
 }
