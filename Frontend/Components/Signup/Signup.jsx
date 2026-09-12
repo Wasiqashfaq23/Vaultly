@@ -32,7 +32,7 @@ function passwordScore(pwd) {
   return Math.min(4, score);
 }
 
-const Signup = () => {
+const Signup = ({ onSignupSuccess }) => {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -60,7 +60,10 @@ const Signup = () => {
       });
       if (res.ok) {
         reset();
-        setSuccess(result?.message || "Account created! You can log in now.");
+        setSuccess(result?.message || "Account created! Check your email to verify.");
+        if (typeof onSignupSuccess === "function") {
+          onSignupSuccess(data.email);
+        }
       } else {
         setError(result?.message || "Signup failed");
       }

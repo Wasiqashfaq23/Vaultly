@@ -1,0 +1,137 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.verify-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f2f5;
+  padding: 20px;
+}
+
+.verify-card {
+  background-color: #fff;
+  padding: 32px 28px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 380px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.verify-card h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.verify-card p {
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.verify-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  color: #fff;
+}
+
+.verify-badge.success {
+  background-color: #2ecc71;
+}
+
+.verify-badge.error {
+  background-color: #e74c3c;
+}
+
+.verify-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #ddd;
+  border-top-color: #3498db;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: verify-spin 0.8s linear infinite;
+}
+
+@keyframes verify-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.verify-primary-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.verify-primary-btn:hover {
+  background-color: #2980b9;
+}
+
+.verify-secondary-btn {
+  padding: 10px;
+  background-color: #ecf0f1;
+  color: #2980b9;
+  border: 1px solid #bdc3c7;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.verify-secondary-btn:hover:not(:disabled) {
+  background-color: #dfe6e9;
+}
+
+.verify-secondary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.resend-form {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resend-form input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.resend-form input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 12px;
+  text-decoration: underline;
+}

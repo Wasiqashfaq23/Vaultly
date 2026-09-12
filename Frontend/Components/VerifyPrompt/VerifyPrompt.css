@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.verify-prompt-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f2f5;
+  padding: 20px;
+}
+
+.verify-prompt-card {
+  background-color: #fff;
+  padding: 32px 28px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 380px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.verify-prompt-card h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.verify-prompt-card p {
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.verify-hint {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.verify-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  color: #fff;
+}
+
+.verify-badge.info {
+  background-color: #3498db;
+}
+
+.verify-secondary-btn {
+  padding: 10px;
+  background-color: #ecf0f1;
+  color: #2980b9;
+  border: 1px solid #bdc3c7;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.verify-secondary-btn.wide {
+  width: 100%;
+}
+
+.verify-secondary-btn:hover:not(:disabled) {
+  background-color: #dfe6e9;
+}
+
+.verify-secondary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.verify-message {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #2ecc71;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 12px;
+  text-decoration: underline;
+}

@@ -136,6 +136,14 @@ VAULT_MASTER_KEY=<openssl rand -hex 32>
 NODE_ENV=development
 PORT=8001
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174
+
+# Optional locally — without SMTP, verification links print to the backend console
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=Vaultly <noreply@example.com>
+FRONTEND_URL=http://localhost:5173
 ```
 
 `VAULT_MASTER_KEY` must be 32 bytes (64 hex characters) — generate with:
@@ -177,8 +185,10 @@ Open `http://localhost:5173` — sign up, log in, and save your first entry.
 
 | Method | Endpoint | Description | Auth Required | Success | Errors |
 |--------|----------|-------------|:-------------:|:-------:|:-------|
-| POST | `/signup` | Register a new user | ❌ | 201 | 400, 409 |
-| POST | `/login` | Login and receive session cookie | ❌ | 200 | 400, 401, 429 |
+| POST | `/signup` | Register a new user (sends a verification email) | ❌ | 201 | 400, 409, 500 |
+| POST | `/login` | Login and receive session cookie | ❌ | 200 | 400, 401, 403, 429 |
+| GET | `/verify-email?token=…` | Verify the email from the emailed link | ❌ | 200 | 400 |
+| POST | `/resend-verification` | Resend the verification email | ❌ | 200 | 400 |
 | POST | `/logout` | Clear session cookie | ❌ | 200 | — |
 | GET | `/me` | Get the current user (sanitized) | ✅ | 200 | 401 |
 | GET | `/verify-cookie` | Validate the session cookie | ✅ | 200 | 401 |
@@ -198,8 +208,11 @@ Vaultly is deployed on **Render** (backend) and **Vercel** (frontend).
 For the hosted backend, set the same environment variables in Render's dashboard:
 
 ```
-MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production, CORS_ORIGINS
+MONGO_URI, JWT_SECRET, VAULT_MASTER_KEY, NODE_ENV=production, CORS_ORIGINS,
+SMTP_HOST, SMTP_PORT=587, SMTP_USER, SMTP_PASS, EMAIL_FROM, FRONTEND_URL
 ```
+
+Email verification requires a working SMTP account (Gmail works with an **App Password** — generate it at https://myaccount.google.com/apppasswords; never use your real Gmail password). Set `FRONTEND_URL` to the Vercel frontend URL so emailed links point at the deployed app. Login is blocked until the email is verified (403 + an inline "resend" option).
 
 On Vercel, set `VITE_API_URL` to the Render backend URL and enable automatic deployment for the `Frontend/` root directory. Set `CORS_ORIGINS` (comma-separated) on Render to your production frontend URLs, e.g. `https://vaultly.vercel.app,http://localhost:5173` — cookie-based auth requires the backend to allow the frontend origin with credentials.
 

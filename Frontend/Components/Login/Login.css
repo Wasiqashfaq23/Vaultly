@@ -107,3 +107,25 @@
   text-align: center;
 }
 
+.resend-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background-color: #ecf0f1;
+  color: #2980b9;
+  border: 1px solid #bdc3c7;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.resend-btn:hover:not(:disabled) {
+  background-color: #dfe6e9;
+}
+
+.resend-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+

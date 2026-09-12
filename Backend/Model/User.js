@@ -13,6 +13,18 @@ const schema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
+    },
+    verified: {
+        type: Boolean,
+        default: false,
+    },
+    verificationHash: {
+        type: String,
+        default: null,
+    },
+    verificationExpires: {
+        type: Date,
+        default: null,
     }
 })
 

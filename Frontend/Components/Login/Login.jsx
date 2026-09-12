@@ -17,6 +17,9 @@ const Login = ({ setCurrPage }) => {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showResend, setShowResend] = useState(false)
+  const [verifyEmail, setVerifyEmail] = useState("")
+  const [resending, setResending] = useState(false)
   const {
     register,
     handleSubmit,
@@ -27,6 +30,7 @@ const Login = ({ setCurrPage }) => {
   const onSubmit = async (data) => {
     setLoading(true)
     setError("")
+    setShowResend(false)
     try {
       const { res, data: result } = await apiFetch("/login", {
         method: "POST",
@@ -35,6 +39,10 @@ const Login = ({ setCurrPage }) => {
       if (res.ok) {
         reset();
         setCurrPage("dashboard");
+      } else if (res.status === 403) {
+        setVerifyEmail(result?.email || data.email);
+        setShowResend(true);
+        setError(result?.message || "Please verify your email before logging in.");
       } else {
         setError(result?.message || "Login failed");
       }
@@ -42,6 +50,24 @@ const Login = ({ setCurrPage }) => {
       setError("Cannot reach the server. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!verifyEmail) return;
+    setResending(true);
+    setError("");
+    try {
+      const { data: result } = await apiFetch("/resend-verification", {
+        method: "POST",
+        body: JSON.stringify({ email: verifyEmail }),
+      });
+      setError(result?.message || "If an account exists with that email, a new verification link has been sent.");
+      setShowResend(false);
+    } catch {
+      setError("Cannot reach the server. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -89,6 +115,16 @@ const Login = ({ setCurrPage }) => {
             <p className="error form-error" role="alert">
               {error}
             </p>
+          )}
+          {showResend && (
+            <button
+              type="button"
+              className="resend-btn"
+              onClick={handleResend}
+              disabled={resending}
+            >
+              {resending ? "Sending…" : "Resend verification email"}
+            </button>
           )}
         </div>
       </div>
